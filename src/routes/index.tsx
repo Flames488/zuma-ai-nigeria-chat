@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Sparkles, MessageCircle } from "lucide-react";
 import { saveProfile } from "@/lib/business-profile";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
