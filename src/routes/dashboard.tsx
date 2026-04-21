@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import {
   MessageCircle,
   TrendingUp,
@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Package,
+  Sparkles,
 } from "lucide-react";
+import { getProfile } from "@/lib/business-profile";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -91,16 +93,19 @@ const statusIcon: Record<Status, typeof CheckCircle2> = {
 };
 
 function Dashboard() {
+  const [name, setName] = useState("Your Business");
+  useEffect(() => setName(getProfile().businessName || "Your Business"), []);
+
   return (
     <div className="min-h-screen bg-surface pb-28">
       {/* Header */}
       <header className="bg-card border-b border-border/60 sticky top-0 z-10 backdrop-blur-md bg-card/90">
-        <div className="mx-auto max-w-3xl px-5 py-4 flex items-center justify-between">
-          <div>
+        <div className="mx-auto max-w-3xl px-5 py-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-xs text-muted-foreground">Welcome back</p>
-            <h1 className="text-lg font-bold tracking-tight">Mama Nkechi Fashion</h1>
+            <h1 className="text-lg font-bold tracking-tight truncate">{name}</h1>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-success/15 border border-success/30 px-3 py-1.5">
+          <div className="inline-flex items-center gap-2 rounded-full bg-success/15 border border-success/30 px-3 py-1.5 shrink-0">
             <span className="relative flex h-2 w-2">
               <span className="animate-pulse-soft absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
@@ -172,14 +177,23 @@ function Dashboard() {
         </section>
       </main>
 
-      {/* Floating Train button */}
-      <Link
-        to="/settings"
-        className="fixed bottom-6 right-6 inline-flex items-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-5 py-3.5 font-semibold shadow-float transition-spring hover:scale-105 active:scale-95"
-      >
-        <Settings2 className="h-5 w-5" />
-        Train My AI
-      </Link>
+      {/* Floating actions */}
+      <div className="fixed bottom-6 right-6 flex flex-col items-end gap-3">
+        <Link
+          to="/simulator"
+          className="inline-flex items-center gap-2 rounded-full bg-card text-foreground border border-border px-4 py-3 font-semibold shadow-elegant transition-spring hover:scale-105 active:scale-95"
+        >
+          <Sparkles className="h-4 w-4 text-primary" />
+          Test AI
+        </Link>
+        <Link
+          to="/settings"
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-5 py-3.5 font-semibold shadow-float transition-spring hover:scale-105 active:scale-95"
+        >
+          <Settings2 className="h-5 w-5" />
+          Train My AI
+        </Link>
+      </div>
     </div>
   );
 }
