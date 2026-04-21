@@ -3,8 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Copy, Check, Bot } from "lucide-react";
+import { ArrowLeft, Send, Copy, Check, Bot, Link as LinkIcon } from "lucide-react";
 import { getProfile, type BusinessProfile } from "@/lib/business-profile";
+import {
+  getPaystackKeys,
+  extractAmount,
+  buildPaymentLink,
+  type PaystackKeys,
+} from "@/lib/paystack";
 import { chatWithAI } from "@/lib/chat.functions";
 import { toast } from "sonner";
 
@@ -18,19 +24,22 @@ export const Route = createFileRoute("/simulator")({
   component: Simulator,
 });
 
-type Msg = { role: "user" | "assistant"; content: string; id: number };
+type Msg = { role: "user" | "assistant"; content: string; id: number; paymentLink?: string };
 
 function Simulator() {
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [paystackKeys, setPaystackKeys] = useState<PaystackKeys | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const callChat = useServerFn(chatWithAI);
 
   useEffect(() => {
     setProfile(getProfile());
+    setPaystackKeys(getPaystackKeys());
   }, []);
 
   useEffect(() => {
@@ -78,6 +87,39 @@ function Simulator() {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const copyLink = async (id: number, url: string) => {
+    await navigator.clipboard.writeText(url);
+    setCopiedLinkId(id);
+    setTimeout(() => setCopiedLinkId(null), 1500);
+  };
+
+  const generateLink = (msg: Msg, idx: number) => {
+    if (!paystackKeys) {
+      toast.error("Connect Paystack in Settings to enable this");
+      return;
+    }
+    const prevUser = [...messages.slice(0, idx)].reverse().find((m) => m.role === "user");
+    const amount =
+      extractAmount(msg.content) ??
+      (prevUser ? extractAmount(prevUser.content) : null);
+
+    if (!amount) {
+      toast.error("No amount found in this conversation yet.");
+      return;
+    }
+
+    const url = buildPaymentLink({
+      publicKey: paystackKeys.publicKey,
+      amountNaira: amount,
+      businessName: profile?.businessName ?? "Business",
+    });
+
+    setMessages((all) =>
+      all.map((m) => (m.id === msg.id ? { ...m, paymentLink: url } : m)),
+    );
+    toast.success(`Payment link ready — ₦${amount.toLocaleString()}`);
   };
 
   return (
@@ -129,12 +171,12 @@ function Simulator() {
             </div>
           )}
 
-          {messages.map((m) => (
+          {messages.map((m, idx) => (
             <div
               key={m.id}
               className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} animate-slide-up`}
             >
-              <div className={`max-w-[80%] ${m.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+              <div className={`max-w-[85%] ${m.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
                 <div
                   className={`px-3.5 py-2.5 rounded-2xl shadow-sm whitespace-pre-wrap text-sm leading-relaxed ${
                     m.role === "user"
@@ -145,20 +187,61 @@ function Simulator() {
                   {m.content}
                 </div>
                 {m.role === "assistant" && (
-                  <button
-                    onClick={() => copy(m.id, m.content)}
-                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-smooth px-2 py-0.5"
-                  >
-                    {copiedId === m.id ? (
-                      <>
-                        <Check className="h-3 w-3" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" /> Copy response
-                      </>
-                    )}
-                  </button>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => copy(m.id, m.content)}
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-smooth px-2 py-0.5"
+                    >
+                      {copiedId === m.id ? (
+                        <>
+                          <Check className="h-3 w-3" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" /> Copy response
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => generateLink(m, idx)}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary-foreground hover:bg-primary transition-smooth px-2 py-0.5 rounded-md border border-primary/30"
+                    >
+                      <LinkIcon className="h-3 w-3" />
+                      Generate Payment Link
+                    </button>
+                  </div>
+                )}
+                {m.role === "assistant" && m.paymentLink && (
+                  <div className="mt-2 w-full bg-card border border-success/30 rounded-xl p-2.5 shadow-sm animate-slide-up">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                      <span className="text-[11px] font-semibold text-success uppercase tracking-wide">
+                        Paystack Link
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 items-stretch">
+                      <input
+                        readOnly
+                        value={m.paymentLink}
+                        onFocus={(e) => e.currentTarget.select()}
+                        className="flex-1 min-w-0 text-[11px] bg-muted rounded-md px-2 py-1.5 font-mono text-foreground/80 outline-none"
+                      />
+                      <button
+                        onClick={() => copyLink(m.id, m.paymentLink!)}
+                        className="shrink-0 px-2.5 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:opacity-90 transition-smooth flex items-center gap-1"
+                      >
+                        {copiedLinkId === m.id ? (
+                          <>
+                            <Check className="h-3 w-3" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" /> Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
