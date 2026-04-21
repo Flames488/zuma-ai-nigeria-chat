@@ -1,26 +1,145 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Sparkles, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Zuma AI — Your WhatsApp Business Assistant" },
+      {
+        name: "description",
+        content:
+          "Activate your AI WhatsApp assistant in minutes. Built for Nigerian small businesses.",
+      },
+      { property: "og:title", content: "Zuma AI — Your WhatsApp Business Assistant" },
+      {
+        property: "og:description",
+        content: "Let AI handle your WhatsApp orders, replies, and customers — 24/7.",
+      },
+    ],
+  }),
+  component: Onboarding,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function Onboarding() {
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setTimeout(() => navigate({ to: "/dashboard" }), 600);
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-gradient-hero">
+      <div className="mx-auto max-w-xl px-5 py-10 sm:py-16 animate-fade-in">
+        {/* Brand */}
+        <div className="flex items-center gap-3 mb-10">
+          <div className="h-11 w-11 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Zuma AI</h2>
+            <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <div className="mb-8 animate-slide-up">
+          <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-4">
+            <Sparkles className="h-3.5 w-3.5" />
+            Setup in under 2 minutes
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">
+            Let's get your AI ready to sell.
+          </h1>
+          <p className="mt-3 text-muted-foreground text-base">
+            Tell us about your business. Your assistant will handle WhatsApp orders, answer
+            customers, and never sleep — even at 2am.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-card rounded-3xl p-6 sm:p-8 shadow-elegant border border-border/50 space-y-5 animate-slide-up"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="name">Business name</Label>
+            <Input id="name" placeholder="e.g. Mama Nkechi Fashion" required />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">What do you sell?</Label>
+            <Select defaultValue="fashion">
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Choose a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fashion">Fashion</SelectItem>
+                <SelectItem value="food">Food & Drinks</SelectItem>
+                <SelectItem value="services">Services</SelectItem>
+                <SelectItem value="electronics">Electronics</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">WhatsApp number</Label>
+            <Input id="whatsapp" type="tel" placeholder="+234 801 234 5678" required />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="open">Opens at</Label>
+              <Input id="open" type="time" defaultValue="09:00" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="close">Closes at</Label>
+              <Input id="close" type="time" defaultValue="20:00" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="products">Your products & prices</Label>
+            <Textarea
+              id="products"
+              placeholder={"Ankara gown – ₦15,000\nSenator wear – ₦25,000\nAso-ebi – ₦12,000"}
+              rows={5}
+              className="resize-none font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              One item per line. Don't worry, you can edit anytime.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            variant="hero"
+            size="xl"
+            className="w-full"
+            disabled={submitting}
+          >
+            {submitting ? "Activating..." : "Activate My AI Assistant"}
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            No card needed. Free for your first 100 conversations.
+          </p>
+        </form>
+      </div>
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
