@@ -46,6 +46,33 @@ function Onboarding() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!businessName.trim()) {
+      toast.error("Oga, please enter your business name first 😄");
+      return;
+    }
+    if (!businessType) {
+      toast.error("Abeg, tell us what you sell 🛍️");
+      return;
+    }
+    const cleanedNumber = whatsapp.replace(/[\s-]/g, "");
+    if (!cleanedNumber || cleanedNumber.replace(/^\+/, "").length < 10) {
+      toast.error("Drop a valid WhatsApp number, my friend 📱");
+      return;
+    }
+    if (!openTime || !closeTime) {
+      toast.error("When do you open and close? Set your business hours ⏰");
+      return;
+    }
+    if (openTime === closeTime) {
+      toast.error("Your opening and closing time can't be the same now 😅");
+      return;
+    }
+    if (!productsList.trim() || productsList.trim().length < 5) {
+      toast.error("Add at least one product so your AI knows what to sell 🧺");
+      return;
+    }
+
     setSubmitting(true);
     saveProfile({
       businessName: businessName.trim(),
@@ -56,7 +83,8 @@ function Onboarding() {
       productsList: productsList.trim(),
       tone: "Friendly",
     });
-    setTimeout(() => navigate({ to: "/dashboard" }), 500);
+    toast.success(`Welcome ${businessName.trim()}! Your AI is warming up 🚀`);
+    setTimeout(() => navigate({ to: "/dashboard" }), 600);
   };
 
   return (
