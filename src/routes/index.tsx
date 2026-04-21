@@ -125,7 +125,6 @@ function Onboarding() {
               placeholder="e.g. Mama Nkechi Fashion"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              required
             />
           </div>
 
@@ -153,7 +152,6 @@ function Onboarding() {
               placeholder="+234 801 234 5678"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              required
             />
           </div>
 
@@ -187,7 +185,6 @@ function Onboarding() {
               value={productsList}
               onChange={(e) => setProductsList(e.target.value)}
               className="resize-none font-mono text-sm"
-              required
             />
             <p className="text-xs text-muted-foreground">
               One item per line. Don't worry, you can edit anytime.
