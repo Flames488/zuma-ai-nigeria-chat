@@ -3,8 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Copy, Check, Bot } from "lucide-react";
+import { ArrowLeft, Send, Copy, Check, Bot, Link as LinkIcon } from "lucide-react";
 import { getProfile, type BusinessProfile } from "@/lib/business-profile";
+import {
+  getPaystackKeys,
+  extractAmount,
+  buildPaymentLink,
+  type PaystackKeys,
+} from "@/lib/paystack";
 import { chatWithAI } from "@/lib/chat.functions";
 import { toast } from "sonner";
 
@@ -18,19 +24,22 @@ export const Route = createFileRoute("/simulator")({
   component: Simulator,
 });
 
-type Msg = { role: "user" | "assistant"; content: string; id: number };
+type Msg = { role: "user" | "assistant"; content: string; id: number; paymentLink?: string };
 
 function Simulator() {
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [paystackKeys, setPaystackKeys] = useState<PaystackKeys | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const callChat = useServerFn(chatWithAI);
 
   useEffect(() => {
     setProfile(getProfile());
+    setPaystackKeys(getPaystackKeys());
   }, []);
 
   useEffect(() => {
