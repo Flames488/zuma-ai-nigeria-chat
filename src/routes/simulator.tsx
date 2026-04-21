@@ -1,0 +1,209 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Send, Copy, Check, Bot } from "lucide-react";
+import { getProfile, type BusinessProfile } from "@/lib/business-profile";
+import { chatWithAI } from "@/lib/chat.functions";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/simulator")({
+  head: () => ({
+    meta: [
+      { title: "AI Simulator — Zuma AI" },
+      { name: "description", content: "Test how your AI assistant replies to customers." },
+    ],
+  }),
+  component: Simulator,
+});
+
+type Msg = { role: "user" | "assistant"; content: string; id: number };
+
+function Simulator() {
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const callChat = useServerFn(chatWithAI);
+
+  useEffect(() => {
+    setProfile(getProfile());
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading]);
+
+  const send = async () => {
+    if (!input.trim() || !profile || loading) return;
+    const userMsg: Msg = { role: "user", content: input.trim(), id: Date.now() };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await callChat({
+        data: {
+          businessName: profile.businessName,
+          businessType: profile.businessType,
+          productsList: profile.productsList,
+          businessHours: `${profile.openTime} – ${profile.closeTime}`,
+          tone: profile.tone,
+          customMessage: profile.customMessage,
+          messages: newMessages.map(({ role, content }) => ({ role, content })),
+        },
+      });
+
+      if (res.error || !res.reply) {
+        toast.error(res.error ?? "Something went wrong");
+      } else {
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: res.reply!, id: Date.now() + 1 },
+        ]);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to reach AI. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = async (id: number, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[oklch(0.95_0.015_140)]">
+      {/* Header — WhatsApp style */}
+      <header className="bg-primary text-primary-foreground sticky top-0 z-10 shadow-md">
+        <div className="mx-auto max-w-2xl px-4 py-3 flex items-center gap-3">
+          <Link
+            to="/dashboard"
+            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-smooth -ml-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center">
+            <Bot className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-semibold text-sm truncate">
+              {profile?.businessName ?? "Your Business"} AI
+            </h1>
+            <p className="text-xs opacity-80 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-soft" />
+              online · simulator mode
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* Chat area */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-5"
+        style={{
+          backgroundImage:
+            "radial-gradient(oklch(0.88 0.02 140) 1px, transparent 1px)",
+          backgroundSize: "20px 20px",
+        }}
+      >
+        <div className="mx-auto max-w-2xl space-y-3">
+          {messages.length === 0 && (
+            <div className="text-center py-12 animate-fade-in">
+              <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-card shadow-sm mb-3">
+                <Bot className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Pretend you're a customer. Ask about prices, delivery, or place an order — see how
+                your AI replies.
+              </p>
+            </div>
+          )}
+
+          {messages.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} animate-slide-up`}
+            >
+              <div className={`max-w-[80%] ${m.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+                <div
+                  className={`px-3.5 py-2.5 rounded-2xl shadow-sm whitespace-pre-wrap text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "bg-[oklch(0.85_0.08_140)] text-foreground rounded-br-sm"
+                      : "bg-card text-card-foreground rounded-bl-sm"
+                  }`}
+                >
+                  {m.content}
+                </div>
+                {m.role === "assistant" && (
+                  <button
+                    onClick={() => copy(m.id, m.content)}
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-smooth px-2 py-0.5"
+                  >
+                    {copiedId === m.id ? (
+                      <>
+                        <Check className="h-3 w-3" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" /> Copy response
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start animate-fade-in">
+              <div className="bg-card rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div className="bg-card border-t border-border/60 p-3 sticky bottom-0">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+          className="mx-auto max-w-2xl flex gap-2 items-center"
+        >
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a customer message..."
+            className="rounded-full bg-muted border-0 focus-visible:ring-1 focus-visible:ring-primary h-11 px-4"
+            disabled={loading}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="h-11 w-11 rounded-full bg-gradient-primary shadow-glow shrink-0"
+            disabled={!input.trim() || loading}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}

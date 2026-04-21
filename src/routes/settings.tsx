@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Trash2, CreditCard, Check } from "lucide-react";
+import { getProfile, saveProfile, type Tone } from "@/lib/business-profile";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -17,17 +18,36 @@ export const Route = createFileRoute("/settings")({
 });
 
 type Product = { id: number; name: string; price: string };
-type Tone = "Professional" | "Friendly" | "Pidgin";
+
+function parseProducts(text: string): Product[] {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  return lines.map((line, i) => {
+    const m = line.match(/^(.+?)[\s–\-—:]+₦?\s*([\d,]+)/);
+    if (m) return { id: i + 1, name: m[1].trim(), price: m[2].replace(/,/g, "") };
+    return { id: i + 1, name: line, price: "" };
+  });
+}
+
+function serializeProducts(products: Product[]): string {
+  return products
+    .filter((p) => p.name.trim())
+    .map((p) => (p.price ? `${p.name} – ₦${Number(p.price).toLocaleString()}` : p.name))
+    .join("\n");
+}
 
 function SettingsPage() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: "Ankara gown", price: "15000" },
-    { id: 2, name: "Senator wear", price: "25000" },
-    { id: 3, name: "Aso-ebi", price: "12000" },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [tone, setTone] = useState<Tone>("Friendly");
+  const [customMessage, setCustomMessage] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const p = getProfile();
+    setProducts(parseProducts(p.productsList));
+    setTone(p.tone);
+    setCustomMessage(p.customMessage ?? "");
+  }, []);
 
   const addProduct = () =>
     setProducts((p) => [...p, { id: Date.now(), name: "", price: "" }]);
@@ -37,7 +57,13 @@ function SettingsPage() {
     setProducts((p) => p.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
 
   const handleSave = () => {
+    saveProfile({
+      productsList: serializeProducts(products),
+      tone,
+      customMessage: customMessage.trim(),
+    });
     setSaved(true);
+    toast.success("Your AI is updated!");
     setTimeout(() => navigate({ to: "/dashboard" }), 800);
   };
 
@@ -121,6 +147,8 @@ function SettingsPage() {
           <Textarea
             placeholder="E.g. Delivery is free for orders above ₦20,000. We deliver Mon–Sat."
             rows={3}
+            value={customMessage}
+            onChange={(e) => setCustomMessage(e.target.value)}
             className="resize-none"
           />
         </section>
@@ -174,7 +202,6 @@ function SettingsPage() {
         </section>
       </main>
 
-      {/* Sticky save */}
       <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border/60 p-4">
         <div className="mx-auto max-w-2xl">
           <Button
