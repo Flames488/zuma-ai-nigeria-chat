@@ -116,6 +116,13 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-6 space-y-6 animate-fade-in">
+        <div className="px-1">
+          <h2 className="text-xl font-bold tracking-tight">Today at {name}</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Here's how your AI is performing right now.
+          </p>
+        </div>
+
         {/* Stats */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {stats.map((s) => (
