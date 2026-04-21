@@ -3,8 +3,18 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, CreditCard, Check } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CreditCard, Check, ShieldCheck } from "lucide-react";
 import { getProfile, saveProfile, type Tone } from "@/lib/business-profile";
+import { getPaystackKeys, savePaystackKeys, type PaystackKeys } from "@/lib/paystack";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
@@ -41,13 +51,40 @@ function SettingsPage() {
   const [tone, setTone] = useState<Tone>("Friendly");
   const [customMessage, setCustomMessage] = useState("");
   const [saved, setSaved] = useState(false);
+  const [paystackKeys, setPaystackKeys] = useState<PaystackKeys | null>(null);
+  const [paystackOpen, setPaystackOpen] = useState(false);
+  const [pkInput, setPkInput] = useState("");
+  const [skInput, setSkInput] = useState("");
 
   useEffect(() => {
     const p = getProfile();
     setProducts(parseProducts(p.productsList));
     setTone(p.tone);
     setCustomMessage(p.customMessage ?? "");
+    const keys = getPaystackKeys();
+    setPaystackKeys(keys);
+    if (keys) {
+      setPkInput(keys.publicKey);
+      setSkInput(keys.secretKey);
+    }
   }, []);
+
+  const handleSavePaystack = () => {
+    const pk = pkInput.trim();
+    const sk = skInput.trim();
+    if (!pk.startsWith("pk_")) {
+      toast.error("Public key should start with pk_test_ or pk_live_");
+      return;
+    }
+    if (!sk.startsWith("sk_")) {
+      toast.error("Secret key should start with sk_test_ or sk_live_");
+      return;
+    }
+    savePaystackKeys({ publicKey: pk, secretKey: sk });
+    setPaystackKeys({ publicKey: pk, secretKey: sk });
+    setPaystackOpen(false);
+    toast.success("Paystack connected 🎉");
+  };
 
   const addProduct = () =>
     setProducts((p) => [...p, { id: Date.now(), name: "", price: "" }]);
@@ -189,18 +226,86 @@ function SettingsPage() {
                 <CreditCard className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-semibold truncate">Connect Paystack</h2>
-                <p className="text-xs text-muted-foreground truncate">
-                  Get paid instantly when AI closes a sale.
-                </p>
+                <h2 className="text-base font-semibold truncate">
+                  {paystackKeys ? "Paystack" : "Connect Paystack"}
+                </h2>
+                {paystackKeys ? (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">
+                    <ShieldCheck className="h-3 w-3" />
+                    Paystack Connected ✓
+                  </span>
+                ) : (
+                  <p className="text-xs text-muted-foreground truncate">
+                    Get paid instantly when AI closes a sale.
+                  </p>
+                )}
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              Connect
+            <Button
+              variant={paystackKeys ? "ghost" : "outline"}
+              size="sm"
+              onClick={() => setPaystackOpen(true)}
+            >
+              {paystackKeys ? "Edit" : "Connect"}
             </Button>
           </div>
         </section>
       </main>
+
+      {/* Paystack Modal */}
+      <Dialog open={paystackOpen} onOpenChange={setPaystackOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect Paystack</DialogTitle>
+            <DialogDescription>
+              Paste your API keys so your AI can generate payment links for customers.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="pk">Public Key</Label>
+              <Input
+                id="pk"
+                placeholder="pk_test_xxxxxxxxxxxxxxxx"
+                value={pkInput}
+                onChange={(e) => setPkInput(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sk">Secret Key</Label>
+              <Input
+                id="sk"
+                type="password"
+                placeholder="sk_test_xxxxxxxxxxxxxxxx"
+                value={skInput}
+                onChange={(e) => setSkInput(e.target.value)}
+                autoComplete="off"
+              />
+              <p className="text-xs text-muted-foreground pt-1">
+                Get your keys from{" "}
+                <a
+                  href="https://dashboard.paystack.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2"
+                >
+                  dashboard.paystack.com
+                </a>{" "}
+                — it's free to create an account.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPaystackOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="hero" onClick={handleSavePaystack}>
+              Save keys
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border/60 p-4">
         <div className="mx-auto max-w-2xl">
