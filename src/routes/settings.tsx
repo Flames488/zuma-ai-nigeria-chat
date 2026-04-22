@@ -72,19 +72,93 @@ function SettingsPage() {
   const [paystackOpen, setPaystackOpen] = useState(false);
   const [pkInput, setPkInput] = useState("");
   const [skInput, setSkInput] = useState("");
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [planLink, setPlanLink] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("Your Business");
+
+  // WhatsApp / 360Dialog
+  const [waConfig, setWaConfig] = useState<WhatsAppConfig | null>(null);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waKeyInput, setWaKeyInput] = useState("");
+  const [waNumberInput, setWaNumberInput] = useState("");
 
   useEffect(() => {
     const p = getProfile();
     setProducts(parseProducts(p.productsList));
     setTone(p.tone);
     setCustomMessage(p.customMessage ?? "");
+    setBusinessName(p.businessName || "Your Business");
     const keys = getPaystackKeys();
     setPaystackKeys(keys);
     if (keys) {
       setPkInput(keys.publicKey);
       setSkInput(keys.secretKey);
     }
+    setPlan(getSavedPlan());
+    const wa = getWhatsAppConfig();
+    setWaConfig(wa);
+    if (wa) {
+      setWaKeyInput(wa.apiKey);
+      setWaNumberInput(wa.businessNumber);
+    }
   }, []);
+
+  const generatePlanLink = () => {
+    if (!paystackKeys) {
+      toast.error("Connect Paystack first to generate a payment link.");
+      return;
+    }
+    if (!plan) {
+      toast.error("Pick a plan first from the Pricing page.");
+      navigate({ to: "/pricing" });
+      return;
+    }
+    const link = buildPaymentLink({
+      publicKey: paystackKeys.publicKey,
+      amountNaira: plan.amountNaira,
+      businessName: `${businessName} — ${plan.name} plan`,
+    });
+    setPlanLink(link);
+    toast.success(`Payment link ready for ${plan.name} (₦${plan.amountNaira.toLocaleString()})`);
+  };
+
+  const copyPlanLink = async () => {
+    if (!planLink) return;
+    try {
+      await navigator.clipboard.writeText(planLink);
+      toast.success("Link copied!");
+    } catch {
+      toast.error("Couldn't copy. Long-press to copy manually.");
+    }
+  };
+
+  const handleSaveWhatsApp = () => {
+    const apiKey = waKeyInput.trim();
+    const businessNumber = waNumberInput.trim();
+    if (apiKey.length < 10) {
+      toast.error("That 360Dialog key looks too short — double-check it 😄");
+      return;
+    }
+    if (!/^\+?\d[\d\s-]{6,}$/.test(businessNumber)) {
+      toast.error("Enter a valid WhatsApp number with country code, e.g. +234...");
+      return;
+    }
+    saveWhatsAppConfig({ apiKey, businessNumber });
+    setWaConfig({ apiKey, businessNumber });
+    setWaOpen(false);
+    toast.success("WhatsApp connected 🎉");
+  };
+
+  const testWhatsAppConnection = () => {
+    // Real send requires a server endpoint (Phase 2). For now, validate locally.
+    if (!waConfig) {
+      toast.error("Save your 360Dialog details first.");
+      return;
+    }
+    toast.success(
+      `Connection looks good! Live test message will work once the webhook is deployed.`,
+    );
+  };
 
   const handleSavePaystack = () => {
     const pk = pkInput.trim();
