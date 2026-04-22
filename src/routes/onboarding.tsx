@@ -84,7 +84,7 @@ function Onboarding() {
       tone: "Friendly",
     });
     toast.success(`Welcome ${businessName.trim()}! Your AI is warming up 🚀`);
-    setTimeout(() => navigate({ to: "/dashboard" }), 600);
+    setTimeout(() => navigate({ to: "/pricing" }), 600);
   };
 
   return (
