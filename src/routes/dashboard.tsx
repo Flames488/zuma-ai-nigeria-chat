@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   MessageCircle,
@@ -10,8 +10,16 @@ import {
   AlertCircle,
   Package,
   Sparkles,
+  Clock,
 } from "lucide-react";
 import { getProfile } from "@/lib/business-profile";
+import {
+  getSubscription,
+  isTrialExpired,
+  trialDaysLeft,
+  type ActiveSubscription,
+} from "@/lib/subscription";
+import { PLANS } from "@/lib/plan";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -93,8 +101,26 @@ const statusIcon: Record<Status, typeof CheckCircle2> = {
 };
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [name, setName] = useState("Your Business");
-  useEffect(() => setName(getProfile().businessName || "Your Business"), []);
+  const [sub, setSub] = useState<ActiveSubscription | null>(null);
+
+  useEffect(() => {
+    setName(getProfile().businessName || "Your Business");
+    const s = getSubscription();
+    if (!s) {
+      navigate({ to: "/pricing" });
+      return;
+    }
+    if (isTrialExpired(s)) {
+      navigate({ to: "/pricing" });
+      return;
+    }
+    setSub(s);
+  }, [navigate]);
+
+  const plan = sub ? PLANS[sub.planId] : null;
+  const daysLeft = sub ? trialDaysLeft(sub) : 0;
 
   return (
     <div className="min-h-screen bg-surface pb-28">
@@ -105,14 +131,42 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground">Welcome back</p>
             <h1 className="text-lg font-bold tracking-tight truncate">{name}</h1>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-success/15 border border-success/30 px-3 py-1.5 shrink-0">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-pulse-soft absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-            </span>
-            <span className="text-xs font-semibold text-success">AI is Live</span>
+          <div className="flex items-center gap-2 shrink-0">
+            {plan && (
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15 transition-smooth"
+              >
+                {plan.name} Plan ✓
+              </Link>
+            )}
+            <div className="inline-flex items-center gap-2 rounded-full bg-success/15 border border-success/30 px-3 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-pulse-soft absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+              </span>
+              <span className="text-xs font-semibold text-success">AI is Live</span>
+            </div>
           </div>
         </div>
+        {sub?.status === "trial" && (
+          <div className="bg-warning/10 border-t border-warning/30">
+            <div className="mx-auto max-w-3xl px-5 py-2.5 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-warning-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="font-medium">
+                  Your free trial ends in {daysLeft} {daysLeft === 1 ? "day" : "days"} — upgrade to keep access
+                </span>
+              </div>
+              <Link
+                to="/pricing"
+                className="font-semibold text-primary hover:underline shrink-0"
+              >
+                Upgrade
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-6 space-y-6 animate-fade-in">
