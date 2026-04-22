@@ -72,12 +72,12 @@ function SettingsPage() {
   const handleSavePaystack = () => {
     const pk = pkInput.trim();
     const sk = skInput.trim();
-    if (!pk.startsWith("pk_")) {
-      toast.error("Public key should start with pk_test_ or pk_live_");
+    if (!pk.startsWith("pk_live_") && !pk.startsWith("pk_test_")) {
+      toast.error("Oga this key doesn't look right, check your Paystack dashboard 😄");
       return;
     }
-    if (!sk.startsWith("sk_")) {
-      toast.error("Secret key should start with sk_test_ or sk_live_");
+    if (!sk.startsWith("sk_live_") && !sk.startsWith("sk_test_")) {
+      toast.error("Oga this key doesn't look right, check your Paystack dashboard 😄");
       return;
     }
     savePaystackKeys({ publicKey: pk, secretKey: sk });

@@ -1,0 +1,169 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { Check, ArrowLeft, Sparkles } from "lucide-react";
+
+export const Route = createFileRoute("/pricing")({
+  head: () => ({
+    meta: [
+      { title: "Choose Your Plan — Zuma AI" },
+      {
+        name: "description",
+        content:
+          "Pick a Zuma AI plan that fits your business. Starter, Growth, or Pro — all built for Nigerian businesses.",
+      },
+      { property: "og:title", content: "Choose Your Plan — Zuma AI" },
+      {
+        property: "og:description",
+        content: "Starter ₦5,000 · Growth ₦12,000 · Pro ₦25,000. 7-day free trial available.",
+      },
+    ],
+  }),
+  component: Pricing,
+});
+
+type Plan = {
+  id: string;
+  name: string;
+  price: string;
+  tagline: string;
+  features: string[];
+  highlight?: boolean;
+  badge?: string;
+};
+
+const plans: Plan[] = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: "₦5,000",
+    tagline: "For new businesses testing the waters.",
+    features: [
+      "100 AI conversations/month",
+      "Payment link generation",
+      "1 WhatsApp number",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    price: "₦12,000",
+    tagline: "Most loved by busy Nigerian sellers.",
+    highlight: true,
+    badge: "Start 7-day free trial",
+    features: [
+      "500 AI conversations/month",
+      "Everything in Starter",
+      "Pidgin language support",
+      "Priority support",
+    ],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "₦25,000",
+    tagline: "For shops scaling on WhatsApp.",
+    features: [
+      "Unlimited conversations",
+      "Everything in Growth",
+      "Multiple WhatsApp numbers",
+      "Monthly business report",
+    ],
+  },
+];
+
+function Pricing() {
+  const navigate = useNavigate();
+
+  const choose = (planId: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zuma_plan", planId);
+    }
+    navigate({ to: "/dashboard" });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-hero pb-16">
+      <header className="mx-auto max-w-5xl px-5 py-5 flex items-center gap-3">
+        <Link
+          to="/onboarding"
+          className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-card/60 transition-smooth"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <span className="font-bold tracking-tight">Zuma AI</span>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-5 pt-4 animate-fade-in">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-4">
+            <Sparkles className="h-3.5 w-3.5" />
+            One last step
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">
+            Choose Your Plan
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            Cancel anytime. Switch plans whenever your business grows.
+          </p>
+        </div>
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {plans.map((p) => (
+            <div
+              key={p.id}
+              className={`relative bg-card rounded-3xl p-6 border shadow-sm flex flex-col animate-slide-up ${
+                p.highlight
+                  ? "border-primary/60 shadow-glow md:scale-[1.03] md:-my-2"
+                  : "border-border/50"
+              }`}
+            >
+              {p.badge && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-primary text-primary-foreground text-[11px] font-semibold px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
+                    {p.badge}
+                  </span>
+                </div>
+              )}
+
+              <h3 className="text-lg font-bold tracking-tight">{p.name}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{p.tagline}</p>
+
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-bold tracking-tight">{p.price}</span>
+                <span className="text-sm text-muted-foreground">/month</span>
+              </div>
+
+              <ul className="mt-5 space-y-2.5 flex-1">
+                {p.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm">
+                    <span
+                      className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${
+                        p.highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                      }`}
+                    >
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                    <span className="text-foreground/90">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                onClick={() => choose(p.id)}
+                variant={p.highlight ? "hero" : "outline"}
+                size="lg"
+                className="w-full mt-6"
+              >
+                Get Started
+              </Button>
+            </div>
+          ))}
+        </section>
+
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          Prices in Naira. VAT included. You can change or cancel your plan anytime.
+        </p>
+      </main>
+    </div>
+  );
+}

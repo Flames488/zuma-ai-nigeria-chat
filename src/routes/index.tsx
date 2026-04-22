@@ -1,210 +1,174 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Sparkles, MessageCircle } from "lucide-react";
-import { saveProfile } from "@/lib/business-profile";
-import { toast } from "sonner";
+  MessageCircle,
+  Sparkles,
+  ShoppingBag,
+  Wallet,
+  Clock,
+  ShieldCheck,
+  ArrowRight,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Zuma AI — Your WhatsApp Business Assistant" },
+      { title: "Zuma AI — Your Business Never Sleeps" },
       {
         name: "description",
         content:
-          "Activate your AI WhatsApp assistant in minutes. Built for Nigerian small businesses.",
+          "AI-powered WhatsApp assistant for Nigerian businesses. Handles customers, takes orders, collects payments — automatically.",
       },
-      { property: "og:title", content: "Zuma AI — Your WhatsApp Business Assistant" },
+      { property: "og:title", content: "Zuma AI — Your Business Never Sleeps" },
       {
         property: "og:description",
-        content: "Let AI handle your WhatsApp orders, replies, and customers — 24/7.",
+        content:
+          "AI-powered WhatsApp assistant for Nigerian businesses. Handles customers, takes orders, collects payments — automatically.",
       },
     ],
   }),
-  component: Onboarding,
+  component: Landing,
 });
 
-function Onboarding() {
-  const navigate = useNavigate();
-  const [submitting, setSubmitting] = useState(false);
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("Fashion");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [openTime, setOpenTime] = useState("09:00");
-  const [closeTime, setCloseTime] = useState("20:00");
-  const [productsList, setProductsList] = useState("");
+const features = [
+  {
+    icon: MessageCircle,
+    title: "Replies in seconds",
+    desc: "Your AI answers WhatsApp messages 24/7 — even at 2am.",
+  },
+  {
+    icon: ShoppingBag,
+    title: "Takes orders for you",
+    desc: "Captures customer details, sizes, quantities — all by chat.",
+  },
+  {
+    icon: Wallet,
+    title: "Collects payments",
+    desc: "Generates Paystack links instantly so customers pay on the spot.",
+  },
+  {
+    icon: Clock,
+    title: "Never misses a sale",
+    desc: "While you sleep, eat, or hustle — Zuma is closing deals.",
+  },
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!businessName.trim()) {
-      toast.error("Oga, please enter your business name first 😄");
-      return;
-    }
-    if (!businessType) {
-      toast.error("Abeg, tell us what you sell 🛍️");
-      return;
-    }
-    const cleanedNumber = whatsapp.replace(/[\s-]/g, "");
-    if (!cleanedNumber || cleanedNumber.replace(/^\+/, "").length < 10) {
-      toast.error("Drop a valid WhatsApp number, my friend 📱");
-      return;
-    }
-    if (!openTime || !closeTime) {
-      toast.error("When do you open and close? Set your business hours ⏰");
-      return;
-    }
-    if (openTime === closeTime) {
-      toast.error("Your opening and closing time can't be the same now 😅");
-      return;
-    }
-    if (!productsList.trim() || productsList.trim().length < 5) {
-      toast.error("Add at least one product so your AI knows what to sell 🧺");
-      return;
-    }
-
-    setSubmitting(true);
-    saveProfile({
-      businessName: businessName.trim(),
-      businessType,
-      whatsapp: whatsapp.trim(),
-      openTime,
-      closeTime,
-      productsList: productsList.trim(),
-      tone: "Friendly",
-    });
-    toast.success(`Welcome ${businessName.trim()}! Your AI is warming up 🚀`);
-    setTimeout(() => navigate({ to: "/dashboard" }), 600);
-  };
-
+function Landing() {
   return (
     <div className="min-h-screen bg-gradient-hero">
-      <div className="mx-auto max-w-xl px-5 py-10 sm:py-16 animate-fade-in">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="h-11 w-11 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
+      {/* Nav */}
+      <header className="mx-auto max-w-5xl px-5 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+            <MessageCircle className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          <div>
-            <h2 className="text-lg font-bold tracking-tight">Zuma AI</h2>
-            <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>
-          </div>
+          <span className="font-bold tracking-tight">Zuma AI</span>
         </div>
-
-        <div className="mb-8 animate-slide-up">
-          <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            Setup in under 2 minutes
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">
-            Let's get your AI ready to sell.
-          </h1>
-          <p className="mt-3 text-muted-foreground text-base">
-            Tell us about your business. Your assistant will handle WhatsApp orders, answer
-            customers, and never sleep — even at 2am.
-          </p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-card rounded-3xl p-6 sm:p-8 shadow-elegant border border-border/50 space-y-5 animate-slide-up"
+        <Link
+          to="/pricing"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth"
         >
-          <div className="space-y-2">
-            <Label htmlFor="name">Business name</Label>
-            <Input
-              id="name"
-              placeholder="e.g. Mama Nkechi Fashion"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-            />
-          </div>
+          Pricing
+        </Link>
+      </header>
 
-          <div className="space-y-2">
-            <Label htmlFor="type">What do you sell?</Label>
-            <Select value={businessType} onValueChange={setBusinessType}>
-              <SelectTrigger id="type">
-                <SelectValue placeholder="Choose a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Fashion">Fashion</SelectItem>
-                <SelectItem value="Food & Drinks">Food & Drinks</SelectItem>
-                <SelectItem value="Services">Services</SelectItem>
-                <SelectItem value="Electronics">Electronics</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Hero */}
+      <main className="mx-auto max-w-3xl px-5 pt-8 pb-20 text-center animate-fade-in">
+        <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-6">
+          <Sparkles className="h-3.5 w-3.5" />
+          Built for Nigerian businesses
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp number</Label>
-            <Input
-              id="whatsapp"
-              type="tel"
-              placeholder="+234 801 234 5678"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-            />
-          </div>
+        <h1 className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]">
+          Your Business
+          <br />
+          Never Sleeps With{" "}
+          <span className="bg-gradient-primary bg-clip-text text-transparent">Zuma AI</span>
+        </h1>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="open">Opens at</Label>
-              <Input
-                id="open"
-                type="time"
-                value={openTime}
-                onChange={(e) => setOpenTime(e.target.value)}
-              />
+        <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          AI-powered WhatsApp assistant for Nigerian businesses. Handles customers, takes orders,
+          collects payments — automatically.
+        </p>
+
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/onboarding">
+            <Button variant="hero" size="xl" className="w-full sm:w-auto">
+              Start Free Trial
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </Link>
+          <Link to="/pricing">
+            <Button variant="outline" size="xl" className="w-full sm:w-auto">
+              See pricing
+            </Button>
+          </Link>
+        </div>
+
+        <p className="mt-4 text-xs text-muted-foreground inline-flex items-center gap-1.5">
+          <ShieldCheck className="h-3.5 w-3.5 text-success" />
+          No card needed · Setup in under 2 minutes
+        </p>
+
+        {/* Mock chat preview */}
+        <div className="mt-14 mx-auto max-w-md bg-card rounded-3xl border border-border/50 shadow-elegant p-5 text-left animate-slide-up">
+          <div className="flex items-center gap-2 pb-3 border-b border-border/50">
+            <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+              Z
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="close">Closes at</Label>
-              <Input
-                id="close"
-                type="time"
-                value={closeTime}
-                onChange={(e) => setCloseTime(e.target.value)}
-              />
+            <div>
+              <p className="text-sm font-semibold leading-tight">Zuma AI</p>
+              <p className="text-[11px] text-success">online</p>
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="products">Your products & prices</Label>
-            <Textarea
-              id="products"
-              placeholder={"Ankara gown – ₦15,000\nSenator wear – ₦25,000\nAso-ebi – ₦12,000"}
-              rows={5}
-              value={productsList}
-              onChange={(e) => setProductsList(e.target.value)}
-              className="resize-none font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              One item per line. Don't worry, you can edit anytime.
-            </p>
+          <div className="space-y-2 mt-4 text-sm">
+            <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]">
+              How much for the blue Ankara gown?
+            </div>
+            <div className="ml-auto bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-3 py-2 max-w-[85%]">
+              Hi dear! 💙 The blue Ankara gown is ₦15,000. Want me to send a payment link?
+            </div>
+            <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]">
+              Yes please
+            </div>
           </div>
+        </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            size="xl"
-            className="w-full"
-            disabled={submitting}
-          >
-            {submitting ? "Activating..." : "Activate My AI Assistant"}
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            No card needed. Free for your first 100 conversations.
+        {/* Features */}
+        <section className="mt-20 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+          {features.map((f) => (
+            <div
+              key={f.title}
+              className="bg-card/80 backdrop-blur rounded-2xl p-5 border border-border/50 shadow-sm"
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <f.icon className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold tracking-tight">{f.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{f.desc}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* Final CTA */}
+        <section className="mt-16 bg-gradient-primary rounded-3xl p-8 sm:p-10 shadow-float text-primary-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Ready to stop missing customers?
+          </h2>
+          <p className="mt-2 text-primary-foreground/85 text-sm sm:text-base">
+            Activate your AI in 2 minutes. Free for the first 100 conversations.
           </p>
-        </form>
-      </div>
+          <Link to="/onboarding" className="inline-block mt-6">
+            <Button
+              size="xl"
+              className="bg-card text-foreground hover:bg-card/90 shadow-glow"
+            >
+              Start Free Trial
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </Link>
+        </section>
+      </main>
     </div>
   );
 }
