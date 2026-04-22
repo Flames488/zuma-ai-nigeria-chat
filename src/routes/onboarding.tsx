@@ -15,7 +15,7 @@ import { Sparkles, MessageCircle } from "lucide-react";
 import { saveProfile } from "@/lib/business-profile";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
       { title: "Zuma AI — Your WhatsApp Business Assistant" },
