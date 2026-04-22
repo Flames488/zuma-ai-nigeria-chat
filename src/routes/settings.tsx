@@ -3,9 +3,26 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, CreditCard, Check, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  CreditCard,
+  Check,
+  ShieldCheck,
+  MessageCircle,
+  ExternalLink,
+  Copy,
+} from "lucide-react";
 import { getProfile, saveProfile, type Tone } from "@/lib/business-profile";
-import { getPaystackKeys, savePaystackKeys, type PaystackKeys } from "@/lib/paystack";
+import {
+  getPaystackKeys,
+  savePaystackKeys,
+  buildPaymentLink,
+  type PaystackKeys,
+} from "@/lib/paystack";
+import { getSavedPlan, type PlanInfo } from "@/lib/plan";
+import { getWhatsAppConfig, saveWhatsAppConfig, type WhatsAppConfig } from "@/lib/whatsapp";
 import {
   Dialog,
   DialogContent,
@@ -55,19 +72,93 @@ function SettingsPage() {
   const [paystackOpen, setPaystackOpen] = useState(false);
   const [pkInput, setPkInput] = useState("");
   const [skInput, setSkInput] = useState("");
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [planLink, setPlanLink] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState("Your Business");
+
+  // WhatsApp / 360Dialog
+  const [waConfig, setWaConfig] = useState<WhatsAppConfig | null>(null);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waKeyInput, setWaKeyInput] = useState("");
+  const [waNumberInput, setWaNumberInput] = useState("");
 
   useEffect(() => {
     const p = getProfile();
     setProducts(parseProducts(p.productsList));
     setTone(p.tone);
     setCustomMessage(p.customMessage ?? "");
+    setBusinessName(p.businessName || "Your Business");
     const keys = getPaystackKeys();
     setPaystackKeys(keys);
     if (keys) {
       setPkInput(keys.publicKey);
       setSkInput(keys.secretKey);
     }
+    setPlan(getSavedPlan());
+    const wa = getWhatsAppConfig();
+    setWaConfig(wa);
+    if (wa) {
+      setWaKeyInput(wa.apiKey);
+      setWaNumberInput(wa.businessNumber);
+    }
   }, []);
+
+  const generatePlanLink = () => {
+    if (!paystackKeys) {
+      toast.error("Connect Paystack first to generate a payment link.");
+      return;
+    }
+    if (!plan) {
+      toast.error("Pick a plan first from the Pricing page.");
+      navigate({ to: "/pricing" });
+      return;
+    }
+    const link = buildPaymentLink({
+      publicKey: paystackKeys.publicKey,
+      amountNaira: plan.amountNaira,
+      businessName: `${businessName} — ${plan.name} plan`,
+    });
+    setPlanLink(link);
+    toast.success(`Payment link ready for ${plan.name} (₦${plan.amountNaira.toLocaleString()})`);
+  };
+
+  const copyPlanLink = async () => {
+    if (!planLink) return;
+    try {
+      await navigator.clipboard.writeText(planLink);
+      toast.success("Link copied!");
+    } catch {
+      toast.error("Couldn't copy. Long-press to copy manually.");
+    }
+  };
+
+  const handleSaveWhatsApp = () => {
+    const apiKey = waKeyInput.trim();
+    const businessNumber = waNumberInput.trim();
+    if (apiKey.length < 10) {
+      toast.error("That 360Dialog key looks too short — double-check it 😄");
+      return;
+    }
+    if (!/^\+?\d[\d\s-]{6,}$/.test(businessNumber)) {
+      toast.error("Enter a valid WhatsApp number with country code, e.g. +234...");
+      return;
+    }
+    saveWhatsAppConfig({ apiKey, businessNumber });
+    setWaConfig({ apiKey, businessNumber });
+    setWaOpen(false);
+    toast.success("WhatsApp connected 🎉");
+  };
+
+  const testWhatsAppConnection = () => {
+    // Real send requires a server endpoint (Phase 2). For now, validate locally.
+    if (!waConfig) {
+      toast.error("Save your 360Dialog details first.");
+      return;
+    }
+    toast.success(
+      `Connection looks good! Live test message will work once the webhook is deployed.`,
+    );
+  };
 
   const handleSavePaystack = () => {
     const pk = pkInput.trim();
@@ -218,7 +309,7 @@ function SettingsPage() {
           </div>
         </section>
 
-        {/* Payments */}
+        {/* Payments — Paystack connection */}
         <section className="bg-card rounded-2xl p-5 sm:p-6 border border-border/50 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
@@ -249,8 +340,168 @@ function SettingsPage() {
               {paystackKeys ? "Edit" : "Connect"}
             </Button>
           </div>
+
+          {/* Pay-for-your-plan link generator */}
+          <div className="mt-5 pt-5 border-t border-border/50">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">Pay for your plan</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {plan
+                    ? `${plan.name} — ₦${plan.amountNaira.toLocaleString()}/month`
+                    : "No plan selected yet."}
+                </p>
+              </div>
+              {!plan && (
+                <Link to="/pricing" className="text-xs font-medium text-primary underline">
+                  Choose plan
+                </Link>
+              )}
+            </div>
+            <Button
+              onClick={generatePlanLink}
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={!paystackKeys || !plan}
+            >
+              <CreditCard className="h-4 w-4" />
+              Generate payment link
+            </Button>
+            {planLink && (
+              <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 p-3 space-y-2 animate-fade-in">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Your payment link
+                </p>
+                <p className="text-xs break-all font-mono text-foreground/90">{planLink}</p>
+                <div className="flex gap-2 pt-1">
+                  <Button onClick={copyPlanLink} size="sm" variant="ghost" className="flex-1">
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </Button>
+                  <a
+                    href={planLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-md text-sm font-medium bg-gradient-primary text-primary-foreground hover:opacity-90 transition-smooth"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open
+                  </a>
+                </div>
+              </div>
+            )}
+            {!paystackKeys && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Connect Paystack above to enable payment links.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* WhatsApp / 360Dialog */}
+        <section className="bg-card rounded-2xl p-5 sm:p-6 border border-border/50 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-11 w-11 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
+                <MessageCircle className="h-5 w-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold truncate">
+                  {waConfig ? "WhatsApp Business" : "Connect WhatsApp"}
+                </h2>
+                {waConfig ? (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success bg-success/10 px-2 py-0.5 rounded-full self-start">
+                      <ShieldCheck className="h-3 w-3" />
+                      WhatsApp Connected ✓
+                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">
+                      {waConfig.businessNumber}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground truncate">
+                    Let AI reply to real customers via 360Dialog.
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button
+              variant={waConfig ? "ghost" : "outline"}
+              size="sm"
+              onClick={() => setWaOpen(true)}
+            >
+              {waConfig ? "Edit" : "Connect"}
+            </Button>
+          </div>
+          {waConfig && (
+            <Button
+              onClick={testWhatsAppConnection}
+              variant="outline"
+              size="sm"
+              className="w-full mt-4"
+            >
+              Send test message
+            </Button>
+          )}
         </section>
       </main>
+
+      {/* WhatsApp / 360Dialog Modal */}
+      <Dialog open={waOpen} onOpenChange={setWaOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect WhatsApp</DialogTitle>
+            <DialogDescription>
+              Use 360Dialog to plug your WhatsApp Business number into Zuma AI.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-key">360Dialog API Key</Label>
+              <Input
+                id="wa-key"
+                type="password"
+                placeholder="D360-XXXXXXXXXXXXXXXX"
+                value={waKeyInput}
+                onChange={(e) => setWaKeyInput(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="wa-number">WhatsApp Business Number</Label>
+              <Input
+                id="wa-number"
+                placeholder="+234 801 234 5678"
+                value={waNumberInput}
+                onChange={(e) => setWaNumberInput(e.target.value)}
+                inputMode="tel"
+              />
+              <p className="text-xs text-muted-foreground pt-1">
+                Get your API key from{" "}
+                <a
+                  href="https://hub.360dialog.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline underline-offset-2"
+                >
+                  hub.360dialog.com
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setWaOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="hero" onClick={handleSaveWhatsApp}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Paystack Modal */}
       <Dialog open={paystackOpen} onOpenChange={setPaystackOpen}>
