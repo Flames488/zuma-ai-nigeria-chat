@@ -3,9 +3,26 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, CreditCard, Check, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  CreditCard,
+  Check,
+  ShieldCheck,
+  MessageCircle,
+  ExternalLink,
+  Copy,
+} from "lucide-react";
 import { getProfile, saveProfile, type Tone } from "@/lib/business-profile";
-import { getPaystackKeys, savePaystackKeys, type PaystackKeys } from "@/lib/paystack";
+import {
+  getPaystackKeys,
+  savePaystackKeys,
+  buildPaymentLink,
+  type PaystackKeys,
+} from "@/lib/paystack";
+import { getSavedPlan, type PlanInfo } from "@/lib/plan";
+import { getWhatsAppConfig, saveWhatsAppConfig, type WhatsAppConfig } from "@/lib/whatsapp";
 import {
   Dialog,
   DialogContent,
