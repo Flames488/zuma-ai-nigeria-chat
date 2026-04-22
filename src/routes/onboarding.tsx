@@ -39,6 +39,7 @@ function Onboarding() {
   const [submitting, setSubmitting] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("Fashion");
+  const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [openTime, setOpenTime] = useState("09:00");
   const [closeTime, setCloseTime] = useState("20:00");
@@ -53,6 +54,10 @@ function Onboarding() {
     }
     if (!businessType) {
       toast.error("Abeg, tell us what you sell 🛍️");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Oga, drop a valid email so we can send your receipts 📧");
       return;
     }
     const cleanedNumber = whatsapp.replace(/[\s-]/g, "");
@@ -77,6 +82,7 @@ function Onboarding() {
     saveProfile({
       businessName: businessName.trim(),
       businessType,
+      email: email.trim(),
       whatsapp: whatsapp.trim(),
       openTime,
       closeTime,
@@ -142,6 +148,20 @@ function Onboarding() {
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@yourbusiness.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              We'll send your subscription receipts here.
+            </p>
           </div>
 
           <div className="space-y-2">

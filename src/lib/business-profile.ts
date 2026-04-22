@@ -3,6 +3,7 @@ export type Tone = "Professional" | "Friendly" | "Pidgin";
 export type BusinessProfile = {
   businessName: string;
   businessType: string;
+  email: string;
   whatsapp: string;
   openTime: string;
   closeTime: string;
@@ -16,6 +17,7 @@ const KEY = "zuma_business_profile";
 const DEFAULT_PROFILE: BusinessProfile = {
   businessName: "Mama Nkechi Fashion",
   businessType: "Fashion",
+  email: "owner@example.com",
   whatsapp: "+234 801 234 5678",
   openTime: "09:00",
   closeTime: "20:00",
