@@ -1,6 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowLeft, Sparkles } from "lucide-react";
+import { Check, ArrowLeft, Sparkles, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { PLANS, type PlanId } from "@/lib/plan";
+import { getProfile } from "@/lib/business-profile";
+import { payForSubscription } from "@/lib/zumaPaystack";
+import {
+  activatePaidSubscription,
+  startTrialSubscription,
+} from "@/lib/subscription";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -14,15 +23,16 @@ export const Route = createFileRoute("/pricing")({
       { property: "og:title", content: "Choose Your Plan — Zuma AI" },
       {
         property: "og:description",
-        content: "Starter ₦5,000 · Growth ₦12,000 · Pro ₦25,000. 7-day free trial available.",
+        content:
+          "Starter ₦5,000 · Growth ₦12,000 · Pro ₦25,000. 7-day free trial available.",
       },
     ],
   }),
   component: Pricing,
 });
 
-type Plan = {
-  id: string;
+type PlanCard = {
+  id: PlanId;
   name: string;
   price: string;
   tagline: string;
@@ -31,7 +41,7 @@ type Plan = {
   badge?: string;
 };
 
-const plans: Plan[] = [
+const plans: PlanCard[] = [
   {
     id: "starter",
     name: "Starter",
@@ -73,12 +83,47 @@ const plans: Plan[] = [
 
 function Pricing() {
   const navigate = useNavigate();
+  const [loadingId, setLoadingId] = useState<PlanId | null>(null);
 
-  const choose = (planId: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("zuma_plan", planId);
+  const choose = async (planId: PlanId) => {
+    const profile = getProfile();
+    const plan = PLANS[planId];
+
+    // Growth plan → 7-day free trial, no charge
+    if (planId === "growth") {
+      startTrialSubscription("growth");
+      toast.success("Your 7-day free trial has started 🎉");
+      navigate({ to: "/dashboard" });
+      return;
     }
-    navigate({ to: "/dashboard" });
+
+    if (!profile.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+      toast.error("Add your email in onboarding first 📧");
+      navigate({ to: "/onboarding" });
+      return;
+    }
+
+    setLoadingId(planId);
+    try {
+      await payForSubscription({
+        plan,
+        email: profile.email,
+        businessName: profile.businessName,
+        onSuccess: (reference) => {
+          activatePaidSubscription(planId, reference);
+          toast.success(`${plan.name} plan activated 🎉`);
+          navigate({ to: "/dashboard" });
+        },
+        onClose: () => {
+          setLoadingId(null);
+          toast.message("Payment cancelled");
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't open Paystack. Check your connection and try again.");
+      setLoadingId(null);
+    }
   };
 
   return (
@@ -138,7 +183,9 @@ function Pricing() {
                   <li key={f} className="flex items-start gap-2 text-sm">
                     <span
                       className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${
-                        p.highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                        p.highlight
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-primary/10 text-primary"
                       }`}
                     >
                       <Check className="h-3 w-3" strokeWidth={3} />
@@ -153,8 +200,18 @@ function Pricing() {
                 variant={p.highlight ? "hero" : "outline"}
                 size="lg"
                 className="w-full mt-6"
+                disabled={loadingId !== null}
               >
-                Get Started
+                {loadingId === p.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Opening Paystack...
+                  </>
+                ) : p.id === "growth" ? (
+                  "Start Free Trial"
+                ) : (
+                  "Get Started"
+                )}
               </Button>
             </div>
           ))}
