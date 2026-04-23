@@ -11,15 +11,15 @@ import {
   Package,
   Sparkles,
   Clock,
+  LogOut,
+  Loader2,
 } from "lucide-react";
-import { getProfile } from "@/lib/business-profile";
-import {
-  getSubscription,
-  isTrialExpired,
-  trialDaysLeft,
-  type ActiveSubscription,
-} from "@/lib/subscription";
-import { PLANS } from "@/lib/plan";
+import { useRequireAuth } from "@/hooks/use-auth";
+import { useAuthedServerFn } from "@/lib/authed-fn";
+import { getDashboard } from "@/lib/server/dashboard.functions";
+import { getMySubscription } from "@/lib/server/subscription.functions";
+import { PLANS, type PlanId } from "@/lib/plan";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -31,100 +31,106 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-const stats = [
-  {
-    label: "Conversations Today",
-    value: "47",
-    delta: "+12 from yesterday",
-    icon: MessageCircle,
-  },
-  { label: "Orders Received", value: "18", delta: "+5 from yesterday", icon: ShoppingBag },
-  { label: "Revenue Today", value: "₦142,500", delta: "+₦38,000", icon: Wallet },
-];
-
-type Status = "Handled" | "Needs You" | "Order Placed";
-
-const conversations: {
-  name: string;
-  initials: string;
-  preview: string;
-  time: string;
-  status: Status;
-}[] = [
-  {
-    name: "Chioma Okeke",
-    initials: "CO",
-    preview: "Please send me the price of the blue Ankara gown 🙏",
-    time: "2m ago",
-    status: "Order Placed",
-  },
-  {
-    name: "Tunde Bakare",
-    initials: "TB",
-    preview: "Do you deliver to Ikeja today?",
-    time: "11m ago",
-    status: "Handled",
-  },
-  {
-    name: "Aisha Mohammed",
-    initials: "AM",
-    preview: "Can I get a discount if I buy 3?",
-    time: "24m ago",
-    status: "Needs You",
-  },
-  {
-    name: "Emeka Johnson",
-    initials: "EJ",
-    preview: "Thank you! I'll transfer now.",
-    time: "1h ago",
-    status: "Order Placed",
-  },
-  {
-    name: "Bola Adeyemi",
-    initials: "BA",
-    preview: "What time do you close today?",
-    time: "2h ago",
-    status: "Handled",
-  },
-];
-
-const statusStyles: Record<Status, string> = {
-  Handled: "bg-muted text-muted-foreground",
-  "Needs You": "bg-warning/15 text-warning-foreground border border-warning/30",
-  "Order Placed": "bg-success/15 text-success border border-success/30",
+type Sub = {
+  plan_id: PlanId;
+  status: "trial" | "active" | "expired" | "cancelled";
+  trial_ends_at: string | null;
+  current_period_end: string | null;
 };
 
-const statusIcon: Record<Status, typeof CheckCircle2> = {
-  Handled: CheckCircle2,
-  "Needs You": AlertCircle,
-  "Order Placed": Package,
+const statusStyles: Record<string, string> = {
+  handled: "bg-muted text-muted-foreground",
+  needs_you: "bg-warning/15 text-warning-foreground border border-warning/30",
+  order_placed: "bg-success/15 text-success border border-success/30",
+};
+const statusIcon: Record<string, typeof CheckCircle2> = {
+  handled: CheckCircle2,
+  needs_you: AlertCircle,
+  order_placed: Package,
+};
+const statusLabel: Record<string, string> = {
+  handled: "Handled",
+  needs_you: "Needs You",
+  order_placed: "Order Placed",
 };
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useRequireAuth();
+  const callDash = useAuthedServerFn(getDashboard);
+  const callSub = useAuthedServerFn(getMySubscription);
+
   const [name, setName] = useState("Your Business");
-  const [sub, setSub] = useState<ActiveSubscription | null>(null);
+  const [sub, setSub] = useState<Sub | null>(null);
+  const [stats, setStats] = useState({ conversationsToday: 0, ordersToday: 0, revenueToday: 0 });
+  const [conversations, setConversations] = useState<
+    Array<{
+      id: string;
+      customer_name: string | null;
+      customer_number: string;
+      last_message: string | null;
+      last_message_at: string;
+      status: string;
+    }>
+  >([]);
+  const [hydrating, setHydrating] = useState(true);
 
   useEffect(() => {
-    setName(getProfile().businessName || "Your Business");
-    const s = getSubscription();
-    if (!s) {
-      navigate({ to: "/pricing" });
-      return;
-    }
-    if (isTrialExpired(s)) {
-      navigate({ to: "/pricing" });
-      return;
-    }
-    setSub(s);
-  }, [navigate]);
+    if (!session) return;
+    Promise.all([callDash(), callSub()]).then(([dash, subRes]) => {
+      if (!dash.businessName) {
+        navigate({ to: "/onboarding" });
+        return;
+      }
+      setName(dash.businessName);
+      setStats(dash.stats);
+      setConversations(dash.conversations);
+      const s = subRes.subscription as Sub | null;
+      if (!s) {
+        navigate({ to: "/pricing" });
+        return;
+      }
+      const trialExpired =
+        s.status === "trial" && s.trial_ends_at && new Date(s.trial_ends_at) < new Date();
+      if (trialExpired || s.status === "expired") {
+        navigate({ to: "/pricing" });
+        return;
+      }
+      setSub(s);
+      setHydrating(false);
+    });
+  }, [session, callDash, callSub, navigate]);
 
-  const plan = sub ? PLANS[sub.planId] : null;
-  const daysLeft = sub ? trialDaysLeft(sub) : 0;
+  const plan = sub ? PLANS[sub.plan_id] : null;
+  const daysLeft =
+    sub?.status === "trial" && sub.trial_ends_at
+      ? Math.max(
+          0,
+          Math.ceil((new Date(sub.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+        )
+      : 0;
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
+  };
+
+  if (authLoading || hydrating) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const stat = [
+    { label: "Conversations Today", value: String(stats.conversationsToday), icon: MessageCircle },
+    { label: "Orders Received", value: String(stats.ordersToday), icon: ShoppingBag },
+    { label: "Revenue Today", value: `₦${stats.revenueToday.toLocaleString()}`, icon: Wallet },
+  ];
 
   return (
     <div className="min-h-screen bg-surface pb-28">
-      {/* Header */}
       <header className="bg-card border-b border-border/60 sticky top-0 z-10 backdrop-blur-md bg-card/90">
         <div className="mx-auto max-w-3xl px-5 py-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -147,6 +153,13 @@ function Dashboard() {
               </span>
               <span className="text-xs font-semibold text-success">AI is Live</span>
             </div>
+            <button
+              onClick={signOut}
+              className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-smooth"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
         </div>
         {sub?.status === "trial" && (
@@ -158,10 +171,7 @@ function Dashboard() {
                   Your free trial ends in {daysLeft} {daysLeft === 1 ? "day" : "days"} — upgrade to keep access
                 </span>
               </div>
-              <Link
-                to="/pricing"
-                className="font-semibold text-primary hover:underline shrink-0"
-              >
+              <Link to="/pricing" className="font-semibold text-primary hover:underline shrink-0">
                 Upgrade
               </Link>
             </div>
@@ -177,9 +187,8 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Stats */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {stats.map((s) => (
+          {stat.map((s) => (
             <div
               key={s.label}
               className="bg-gradient-card rounded-2xl p-5 border border-border/50 shadow-sm transition-smooth hover:shadow-md"
@@ -191,44 +200,62 @@ function Dashboard() {
                 </div>
               </div>
               <div className="text-2xl font-bold tracking-tight">{s.value}</div>
-              <div className="mt-1 flex items-center gap-1 text-xs text-success">
+              <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                 <TrendingUp className="h-3 w-3" />
-                {s.delta}
+                Live data
               </div>
             </div>
           ))}
         </section>
 
-        {/* Conversations */}
         <section>
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold">Recent conversations</h2>
             <span className="text-xs text-muted-foreground">Live feed</span>
           </div>
           <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+            {conversations.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No conversations yet. Connect WhatsApp in Settings to start receiving messages.
+              </div>
+            )}
             {conversations.map((c, i) => {
-              const Icon = statusIcon[c.status];
+              const Icon = statusIcon[c.status] ?? CheckCircle2;
+              const initials = (c.customer_name ?? c.customer_number)
+                .split(/\s+/)
+                .map((s) => s[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
+              const timeAgo = formatTimeAgo(c.last_message_at);
               return (
                 <div
-                  key={c.name}
+                  key={c.id}
                   className={`flex items-start gap-3 p-4 transition-smooth hover:bg-muted/50 ${
                     i !== conversations.length - 1 ? "border-b border-border/50" : ""
                   }`}
                 >
                   <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-semibold text-sm shrink-0">
-                    {c.initials}
+                    {initials}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm truncate">{c.name}</span>
-                      <span className="text-xs text-muted-foreground shrink-0">{c.time}</span>
+                      <span className="font-medium text-sm truncate">
+                        {c.customer_name ?? c.customer_number}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0">{timeAgo}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate mt-0.5">{c.preview}</p>
+                    <p className="text-xs text-muted-foreground/80 truncate">{c.customer_number}</p>
+                    <p className="text-sm text-muted-foreground truncate mt-0.5">
+                      {c.last_message ?? "—"}
+                    </p>
                     <div
-                      className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[11px] font-medium ${statusStyles[c.status]}`}
+                      className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                        statusStyles[c.status] ?? statusStyles.handled
+                      }`}
                     >
                       <Icon className="h-3 w-3" />
-                      {c.status}
+                      {statusLabel[c.status] ?? c.status}
                     </div>
                   </div>
                 </div>
@@ -238,7 +265,6 @@ function Dashboard() {
         </section>
       </main>
 
-      {/* Floating actions */}
       <div className="fixed bottom-6 right-6 flex flex-col items-end gap-3">
         <Link
           to="/simulator"
@@ -257,4 +283,14 @@ function Dashboard() {
       </div>
     </div>
   );
+}
+
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
