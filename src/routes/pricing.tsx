@@ -1,15 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowLeft, Sparkles, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { PLANS, type PlanId } from "@/lib/plan";
-import { getProfile } from "@/lib/business-profile";
-import { payForSubscription } from "@/lib/zumaPaystack";
-import {
-  activatePaidSubscription,
-  startTrialSubscription,
-} from "@/lib/subscription";
+import { type PlanId } from "@/lib/plan";
+import { useRequireAuth } from "@/hooks/use-auth";
+import { useAuthedServerFn } from "@/lib/authed-fn";
+import { initSubscriptionCheckout, startTrial } from "@/lib/server/subscription.functions";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -18,13 +15,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "Pick a Zuma AI plan that fits your business. Starter, Growth, or Pro — all built for Nigerian businesses.",
-      },
-      { property: "og:title", content: "Choose Your Plan — Zuma AI" },
-      {
-        property: "og:description",
-        content:
-          "Starter ₦5,000 · Growth ₦12,000 · Pro ₦25,000. 7-day free trial available.",
+          "Pick a Zuma AI plan that fits your business. Starter, Growth, or Pro — built for Nigerian businesses.",
       },
     ],
   }),
@@ -47,11 +38,7 @@ const plans: PlanCard[] = [
     name: "Starter",
     price: "₦5,000",
     tagline: "For new businesses testing the waters.",
-    features: [
-      "100 AI conversations/month",
-      "Payment link generation",
-      "1 WhatsApp number",
-    ],
+    features: ["100 AI conversations/month", "Payment link generation", "1 WhatsApp number"],
   },
   {
     id: "growth",
@@ -83,48 +70,55 @@ const plans: PlanCard[] = [
 
 function Pricing() {
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useRequireAuth();
   const [loadingId, setLoadingId] = useState<PlanId | null>(null);
+  const callInit = useAuthedServerFn(initSubscriptionCheckout);
+  const callTrial = useAuthedServerFn(startTrial);
+
+  useEffect(() => {
+    /* hydration handled by useRequireAuth */
+  }, [session]);
 
   const choose = async (planId: PlanId) => {
-    const profile = getProfile();
-    const plan = PLANS[planId];
-
-    // Growth plan → 7-day free trial, no charge
     if (planId === "growth") {
-      startTrialSubscription("growth");
+      setLoadingId(planId);
+      const res = await callTrial({ data: { planId } });
+      setLoadingId(null);
+      if (!res.ok) {
+        toast.error(res.error ?? "Couldn't start trial");
+        if (res.error?.includes("business")) navigate({ to: "/onboarding" });
+        return;
+      }
       toast.success("Your 7-day free trial has started 🎉");
       navigate({ to: "/dashboard" });
       return;
     }
 
-    if (!profile.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
-      toast.error("Add your email in onboarding first 📧");
-      navigate({ to: "/onboarding" });
-      return;
-    }
-
     setLoadingId(planId);
     try {
-      await payForSubscription({
-        plan,
-        email: profile.email,
-        businessName: profile.businessName,
-        onSuccess: (reference) => {
-          activatePaidSubscription(planId, reference);
-          toast.success(`${plan.name} plan activated 🎉`);
-          navigate({ to: "/dashboard" });
-        },
-        onClose: () => {
-          setLoadingId(null);
-          toast.message("Payment cancelled");
-        },
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error("Couldn't open Paystack. Check your connection and try again.");
+      const res = await callInit({ data: { planId } });
+      if (!res.ok || !res.url) {
+        toast.error(res.error ?? "Couldn't start checkout");
+        if (res.error?.includes("business") || res.error?.includes("email"))
+          navigate({ to: "/onboarding" });
+        setLoadingId(null);
+        return;
+      }
+      window.location.href = res.url;
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't reach Paystack. Try again.");
       setLoadingId(null);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero pb-16">
@@ -144,9 +138,7 @@ function Pricing() {
             <Sparkles className="h-3.5 w-3.5" />
             One last step
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">
-            Choose Your Plan
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">Choose Your Plan</h1>
           <p className="mt-3 text-muted-foreground">
             Cancel anytime. Switch plans whenever your business grows.
           </p>
@@ -157,9 +149,7 @@ function Pricing() {
             <div
               key={p.id}
               className={`relative bg-card rounded-3xl p-6 border shadow-sm flex flex-col animate-slide-up ${
-                p.highlight
-                  ? "border-primary/60 shadow-glow md:scale-[1.03] md:-my-2"
-                  : "border-border/50"
+                p.highlight ? "border-primary/60 shadow-glow md:scale-[1.03] md:-my-2" : "border-border/50"
               }`}
             >
               {p.badge && (
@@ -183,9 +173,7 @@ function Pricing() {
                   <li key={f} className="flex items-start gap-2 text-sm">
                     <span
                       className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 ${
-                        p.highlight
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-primary/10 text-primary"
+                        p.highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
                       }`}
                     >
                       <Check className="h-3 w-3" strokeWidth={3} />

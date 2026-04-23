@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, MessageCircle } from "lucide-react";
-import { saveProfile } from "@/lib/business-profile";
+import { Sparkles, MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useRequireAuth } from "@/hooks/use-auth";
+import { useAuthedServerFn } from "@/lib/authed-fn";
+import { getMyBusiness, upsertMyBusiness } from "@/lib/server/business.functions";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -24,11 +26,6 @@ export const Route = createFileRoute("/onboarding")({
         content:
           "Activate your AI WhatsApp assistant in minutes. Built for Nigerian small businesses.",
       },
-      { property: "og:title", content: "Zuma AI — Your WhatsApp Business Assistant" },
-      {
-        property: "og:description",
-        content: "Let AI handle your WhatsApp orders, replies, and customers — 24/7.",
-      },
     ],
   }),
   component: Onboarding,
@@ -36,7 +33,12 @@ export const Route = createFileRoute("/onboarding")({
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useRequireAuth();
+  const callGet = useAuthedServerFn(getMyBusiness);
+  const callUpsert = useAuthedServerFn(upsertMyBusiness);
+
   const [submitting, setSubmitting] = useState(false);
+  const [hydrating, setHydrating] = useState(true);
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("Fashion");
   const [email, setEmail] = useState("");
@@ -45,53 +47,70 @@ function Onboarding() {
   const [closeTime, setCloseTime] = useState("20:00");
   const [productsList, setProductsList] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (!session) return;
+    setEmail(session.user.email ?? "");
+    callGet().then((res) => {
+      if (res.business) {
+        setBusinessName(res.business.name);
+        setBusinessType(res.business.type);
+        setEmail(res.business.email || session.user.email || "");
+        setWhatsapp(res.business.whatsapp);
+        setOpenTime(res.business.open_time);
+        setCloseTime(res.business.close_time);
+        setProductsList(res.business.products_list);
+      }
+      setHydrating(false);
+    });
+  }, [session, callGet]);
 
-    if (!businessName.trim()) {
-      toast.error("Oga, please enter your business name first 😄");
-      return;
-    }
-    if (!businessType) {
-      toast.error("Abeg, tell us what you sell 🛍️");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.error("Oga, drop a valid email so we can send your receipts 📧");
-      return;
-    }
-    const cleanedNumber = whatsapp.replace(/[\s-]/g, "");
-    if (!cleanedNumber || cleanedNumber.replace(/^\+/, "").length < 10) {
-      toast.error("Drop a valid WhatsApp number, my friend 📱");
-      return;
-    }
-    if (!openTime || !closeTime) {
-      toast.error("When do you open and close? Set your business hours ⏰");
-      return;
-    }
-    if (openTime === closeTime) {
-      toast.error("Your opening and closing time can't be the same now 😅");
-      return;
-    }
-    if (!productsList.trim() || productsList.trim().length < 5) {
-      toast.error("Add at least one product so your AI knows what to sell 🧺");
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessName.trim()) return toast.error("Oga, please enter your business name first 😄");
+    if (!businessType) return toast.error("Abeg, tell us what you sell 🛍️");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      return toast.error("Oga, drop a valid email so we can send your receipts 📧");
+    const cleaned = whatsapp.replace(/[\s-]/g, "");
+    if (!cleaned || cleaned.replace(/^\+/, "").length < 10)
+      return toast.error("Drop a valid WhatsApp number, my friend 📱");
+    if (!openTime || !closeTime || openTime === closeTime)
+      return toast.error("Set proper open and close times ⏰");
+    if (!productsList.trim() || productsList.trim().length < 5)
+      return toast.error("Add at least one product so your AI knows what to sell 🧺");
 
     setSubmitting(true);
-    saveProfile({
-      businessName: businessName.trim(),
-      businessType,
-      email: email.trim(),
-      whatsapp: whatsapp.trim(),
-      openTime,
-      closeTime,
-      productsList: productsList.trim(),
-      tone: "Friendly",
-    });
-    toast.success(`Welcome ${businessName.trim()}! Your AI is warming up 🚀`);
-    setTimeout(() => navigate({ to: "/pricing" }), 600);
+    try {
+      const res = await callUpsert({
+        data: {
+          name: businessName.trim(),
+          type: businessType,
+          email: email.trim(),
+          whatsapp: whatsapp.trim(),
+          open_time: openTime,
+          close_time: closeTime,
+          products_list: productsList.trim(),
+          tone: "Friendly",
+          custom_message: "",
+        },
+      });
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`Welcome ${businessName.trim()}! Your AI is warming up 🚀`);
+      setTimeout(() => navigate({ to: "/pricing" }), 500);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (authLoading || hydrating) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -178,21 +197,11 @@ function Onboarding() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="open">Opens at</Label>
-              <Input
-                id="open"
-                type="time"
-                value={openTime}
-                onChange={(e) => setOpenTime(e.target.value)}
-              />
+              <Input id="open" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="close">Closes at</Label>
-              <Input
-                id="close"
-                type="time"
-                value={closeTime}
-                onChange={(e) => setCloseTime(e.target.value)}
-              />
+              <Input id="close" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} />
             </div>
           </div>
 
@@ -211,13 +220,7 @@ function Onboarding() {
             </p>
           </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            size="xl"
-            className="w-full"
-            disabled={submitting}
-          >
+          <Button type="submit" variant="hero" size="xl" className="w-full" disabled={submitting}>
             {submitting ? "Activating..." : "Activate My AI Assistant"}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
