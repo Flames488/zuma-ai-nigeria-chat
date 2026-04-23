@@ -14,7 +14,283 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          close_time: string
+          created_at: string
+          custom_message: string | null
+          email: string
+          id: string
+          name: string
+          open_time: string
+          owner_id: string
+          products_list: string
+          tone: string
+          type: string
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          close_time?: string
+          created_at?: string
+          custom_message?: string | null
+          email: string
+          id?: string
+          name: string
+          open_time?: string
+          owner_id: string
+          products_list?: string
+          tone?: string
+          type?: string
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          custom_message?: string | null
+          email?: string
+          id?: string
+          name?: string
+          open_time?: string
+          owner_id?: string
+          products_list?: string
+          tone?: string
+          type?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          business_id: string
+          created_at: string
+          customer_name: string | null
+          customer_number: string
+          id: string
+          last_message_at: string
+          status: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number: string
+          id?: string
+          last_message_at?: string
+          status?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number?: string
+          id?: string
+          last_message_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount_naira: number
+          business_id: string
+          conversation_id: string | null
+          created_at: string
+          customer_number: string
+          id: string
+          paid_at: string | null
+          paystack_reference: string | null
+          status: string
+        }
+        Insert: {
+          amount_naira: number
+          business_id: string
+          conversation_id?: string | null
+          created_at?: string
+          customer_number: string
+          id?: string
+          paid_at?: string | null
+          paystack_reference?: string | null
+          status?: string
+        }
+        Update: {
+          amount_naira?: number
+          business_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          customer_number?: string
+          id?: string
+          paid_at?: string | null
+          paystack_reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paystack_keys: {
+        Row: {
+          business_id: string
+          created_at: string
+          public_key: string
+          secret_key: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          public_key: string
+          secret_key: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          public_key?: string
+          secret_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paystack_keys_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          business_id: string
+          created_at: string
+          current_period_end: string | null
+          id: string
+          paystack_reference: string | null
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paystack_reference?: string | null
+          plan_id: string
+          status: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paystack_reference?: string | null
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_config: {
+        Row: {
+          business_id: string
+          business_number: string
+          created_at: string
+          dialog_api_key: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          business_number: string
+          created_at?: string
+          dialog_api_key: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          business_number?: string
+          created_at?: string
+          dialog_api_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_config_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
