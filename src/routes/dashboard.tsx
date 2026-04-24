@@ -13,13 +13,17 @@ import {
   Clock,
   LogOut,
   Loader2,
+  Lock,
+  CreditCard,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useAuthedServerFn } from "@/lib/authed-fn";
 import { getDashboard } from "@/lib/server/dashboard.functions";
-import { getMySubscription } from "@/lib/server/subscription.functions";
+import { getMySubscription, initSubscriptionCheckout } from "@/lib/server/subscription.functions";
 import { PLANS, type PlanId } from "@/lib/plan";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -59,9 +63,12 @@ function Dashboard() {
   const { session, loading: authLoading } = useRequireAuth();
   const callDash = useAuthedServerFn(getDashboard);
   const callSub = useAuthedServerFn(getMySubscription);
+  const callInit = useAuthedServerFn(initSubscriptionCheckout);
 
   const [name, setName] = useState("Your Business");
   const [sub, setSub] = useState<Sub | null>(null);
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const [stats, setStats] = useState({ conversationsToday: 0, ordersToday: 0, revenueToday: 0 });
   const [conversations, setConversations] = useState<
     Array<{
@@ -90,16 +97,31 @@ function Dashboard() {
         navigate({ to: "/pricing" });
         return;
       }
-      const trialExpired =
-        s.status === "trial" && s.trial_ends_at && new Date(s.trial_ends_at) < new Date();
-      if (trialExpired || s.status === "expired") {
-        navigate({ to: "/pricing" });
-        return;
-      }
+      const expired =
+        (s.status === "trial" && s.trial_ends_at && new Date(s.trial_ends_at) < new Date()) ||
+        s.status === "expired";
+      setTrialExpired(!!expired);
       setSub(s);
       setHydrating(false);
     });
   }, [session, callDash, callSub, navigate]);
+
+  const upgradeNow = async () => {
+    if (!sub) return;
+    setUpgrading(true);
+    try {
+      const res = await callInit({ data: { planId: sub.plan_id } });
+      if (!res.ok || !res.url) {
+        toast.error(res.error ?? "Couldn't open Paystack");
+        setUpgrading(false);
+        return;
+      }
+      window.location.href = res.url;
+    } catch {
+      toast.error("Couldn't reach Paystack. Try again.");
+      setUpgrading(false);
+    }
+  };
 
   const plan = sub ? PLANS[sub.plan_id] : null;
   const daysLeft =
@@ -281,6 +303,52 @@ function Dashboard() {
           Train My AI
         </Link>
       </div>
+
+      {trialExpired && sub && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-5 animate-fade-in">
+          <div className="bg-card border border-border/60 rounded-3xl shadow-float max-w-md w-full p-7 text-center">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <Lock className="h-7 w-7 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">Your free trial has ended</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Add your card to keep {PLANS[sub.plan_id].name} active and don't miss any customer
+              messages. ₦{PLANS[sub.plan_id].amountNaira.toLocaleString()}/month, cancel anytime.
+            </p>
+            <Button
+              onClick={upgradeNow}
+              variant="hero"
+              size="lg"
+              className="w-full mt-5"
+              disabled={upgrading}
+            >
+              {upgrading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Opening Paystack...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  Add card & continue
+                </>
+              )}
+            </Button>
+            <Link
+              to="/pricing"
+              className="block text-xs text-muted-foreground hover:text-foreground mt-4"
+            >
+              Change plan instead
+            </Link>
+            <button
+              onClick={signOut}
+              className="block w-full text-xs text-muted-foreground hover:text-foreground mt-2"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
