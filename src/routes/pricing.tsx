@@ -168,7 +168,7 @@ function Pricing() {
                 className="shrink-0 font-semibold sm:min-w-[200px]"
                 disabled={loadingId !== null}
               >
-                {loadingId === "growth" && !document.location.search ? (
+                {loadingId === "growth" ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Starting...
