@@ -235,8 +235,6 @@ function Pricing() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Opening Paystack...
                   </>
-                ) : p.id === "growth" ? (
-                  "Start Free Trial"
                 ) : (
                   "Get Started"
                 )}
