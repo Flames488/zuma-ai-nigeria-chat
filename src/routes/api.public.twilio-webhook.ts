@@ -1,96 +1,184 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
- * 360Dialog WhatsApp webhook.
+ * Twilio WhatsApp inbound webhook.
  *
- * Receives incoming customer messages, looks up the matching business by the
- * receiving WhatsApp number, runs the message through Lovable AI with the
- * business profile, and sends the reply back via 360Dialog.
+ * Twilio posts application/x-www-form-urlencoded with fields like:
+ *   From=whatsapp:+234...    (the customer)
+ *   To=whatsapp:+234...      (your Twilio WhatsApp business number)
+ *   Body=...                 (message text)
+ *   ProfileName=...          (customer display name, optional)
+ *   MessageSid=...
  *
- * Auth: 360Dialog cannot HMAC-sign payloads in the standard tier, so we use
- * a shared secret in the URL via WHATSAPP_WEBHOOK_TOKEN. Configure the URL as
- * https://<your-app>/api/public/whatsapp-webhook?token=<WHATSAPP_WEBHOOK_TOKEN>
+ * Configure this URL in the Twilio console as the "WHEN A MESSAGE COMES IN"
+ * webhook for your WhatsApp sender:
+ *   https://<your-app>/api/public/twilio-webhook
+ *
+ * Security: We verify Twilio's X-Twilio-Signature header using TWILIO_AUTH_TOKEN.
+ * See https://www.twilio.com/docs/usage/webhooks/webhooks-security
  */
 export const Route = createFileRoute("/api/public/twilio-webhook")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        // Used for 360Dialog/Meta verification
-        const url = new URL(request.url);
-        const challenge = url.searchParams.get("hub.challenge");
-        if (challenge) return new Response(challenge, { status: 200 });
-        return new Response("ok", { status: 200 });
-      },
+      GET: async () => new Response("ok", { status: 200 }),
       POST: async ({ request }) => {
-        const url = new URL(request.url);
-        const expectedToken = process.env.WHATSAPP_WEBHOOK_TOKEN;
-        if (expectedToken && url.searchParams.get("token") !== expectedToken) {
-          return new Response("Unauthorized", { status: 401 });
+        const rawBody = await request.text();
+        const params = new URLSearchParams(rawBody);
+
+        // --- Twilio signature verification ---
+        const authToken = process.env.TWILIO_AUTH_TOKEN;
+        const signature = request.headers.get("x-twilio-signature");
+        if (!authToken) {
+          console.error("TWILIO_AUTH_TOKEN missing");
+          return new Response("Server misconfigured", { status: 500 });
         }
-
-        let payload: any;
-        try {
-          payload = await request.json();
-        } catch {
-          return new Response("Invalid JSON", { status: 400 });
+        if (!signature) {
+          return new Response("Missing signature", { status: 401 });
         }
-
-        // Walk the standard WhatsApp Cloud / 360Dialog payload shape.
-        const entries = payload.entry ?? [];
-        for (const entry of entries) {
-          const changes = entry.changes ?? [];
-          for (const change of changes) {
-            const value = change.value ?? {};
-            const businessNumber: string | undefined =
-              value?.metadata?.display_phone_number;
-            const messages = value.messages ?? [];
-            const contacts = value.contacts ?? [];
-            if (!businessNumber || messages.length === 0) continue;
-
-            // Match the receiving number to a business.
-            const cleanNumber = "+" + String(businessNumber).replace(/[^\d]/g, "");
-            const { data: wa } = await supabaseAdmin
-              .from("whatsapp_config")
-              .select("business_id, dialog_api_key, business_number")
-              .or(`business_number.eq.${cleanNumber},business_number.eq.${businessNumber}`)
-              .maybeSingle();
-            if (!wa) {
-              console.warn("No business matched WhatsApp number", businessNumber);
-              continue;
-            }
-
-            const { data: biz } = await supabaseAdmin
-              .from("businesses")
-              .select(
-                "id, name, type, products_list, open_time, close_time, tone, custom_message",
-              )
-              .eq("id", wa.business_id)
-              .maybeSingle();
-            if (!biz) continue;
-
-            for (const msg of messages) {
-              if (msg.type !== "text" || !msg.text?.body) continue;
-              const customerNumber: string = msg.from;
-              const customerName: string | null =
-                contacts.find((c: any) => c.wa_id === customerNumber)?.profile?.name ?? null;
-              const text: string = msg.text.body;
-
-              await handleIncomingMessage({
-                business: biz,
-                wa,
-                customerNumber,
-                customerName,
-                text,
-              });
-            }
+        // Twilio computes HMAC-SHA1 over the full URL + sorted form fields concatenated as key+value.
+        const fullUrl = request.headers.get("x-forwarded-proto")
+          ? `${request.headers.get("x-forwarded-proto")}://${request.headers.get("host")}${new URL(request.url).pathname}${new URL(request.url).search}`
+          : request.url;
+        if (!verifyTwilioSignature(authToken, fullUrl, params, signature)) {
+          // Some proxies rewrite the URL — try the raw request.url as a fallback.
+          if (!verifyTwilioSignature(authToken, request.url, params, signature)) {
+            return new Response("Invalid signature", { status: 401 });
           }
         }
-        return new Response("ok", { status: 200 });
+
+        const from = params.get("From") ?? ""; // e.g. "whatsapp:+234..."
+        const to = params.get("To") ?? "";
+        const body = params.get("Body") ?? "";
+        const profileName = params.get("ProfileName");
+
+        if (!from || !to || !body) {
+          return twimlResponse(""); // Nothing to do, but ack to Twilio.
+        }
+
+        const customerNumber = stripWhatsappPrefix(from);
+        const businessNumber = stripWhatsappPrefix(to);
+
+        // Match the receiving Twilio number to a business.
+        const { data: wa } = await supabaseAdmin
+          .from("whatsapp_config")
+          .select("business_id, business_number")
+          .or(
+            `business_number.eq.${businessNumber},business_number.eq.${businessNumber.replace(/^\+/, "")}`,
+          )
+          .maybeSingle();
+        if (!wa) {
+          console.warn("No business matched Twilio number", businessNumber);
+          return twimlResponse("");
+        }
+
+        const { data: biz } = await supabaseAdmin
+          .from("businesses")
+          .select(
+            "id, name, type, products_list, open_time, close_time, tone, custom_message",
+          )
+          .eq("id", wa.business_id)
+          .maybeSingle();
+        if (!biz) return twimlResponse("");
+
+        const reply = await handleIncomingMessage({
+          business: biz,
+          customerNumber,
+          customerName: profileName,
+          text: body,
+        });
+
+        // Send the reply back via the Twilio API (so it goes from the same WA sender).
+        if (reply) {
+          await sendTwilioWhatsapp({ to: from, from: to, body: reply });
+        }
+
+        // Respond with empty TwiML — we already sent the reply via the REST API.
+        return twimlResponse("");
       },
     },
   },
 });
+
+// ---------- helpers ----------
+
+function stripWhatsappPrefix(n: string) {
+  return n.replace(/^whatsapp:/i, "").trim();
+}
+
+function twimlResponse(message: string) {
+  const xml = message
+    ? `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(message)}</Message></Response>`
+    : `<?xml version="1.0" encoding="UTF-8"?><Response/>`;
+  return new Response(xml, {
+    status: 200,
+    headers: { "Content-Type": "text/xml; charset=utf-8" },
+  });
+}
+
+function escapeXml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function verifyTwilioSignature(
+  authToken: string,
+  url: string,
+  params: URLSearchParams,
+  signature: string,
+): boolean {
+  const keys = Array.from(new Set(Array.from(params.keys()))).sort();
+  let data = url;
+  for (const key of keys) {
+    // For repeated keys, Twilio concatenates all values in order.
+    for (const value of params.getAll(key)) {
+      data += key + value;
+    }
+  }
+  const expected = createHmac("sha1", authToken).update(data).digest("base64");
+  try {
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+async function sendTwilioWhatsapp(args: { to: string; from: string; body: string }) {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const twilioKey = process.env.TWILIO_API_KEY;
+  if (!lovableKey || !twilioKey) {
+    console.error("Twilio gateway credentials missing");
+    return;
+  }
+  try {
+    const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": twilioKey,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: args.to,
+        From: args.from,
+        Body: args.body,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Twilio send failed", res.status, await res.text());
+    }
+  } catch (e) {
+    console.error("Twilio send error", e);
+  }
+}
 
 async function handleIncomingMessage(args: {
   business: {
@@ -103,11 +191,10 @@ async function handleIncomingMessage(args: {
     tone: string;
     custom_message: string | null;
   };
-  wa: { dialog_api_key: string; business_id: string };
   customerNumber: string;
   customerName: string | null;
   text: string;
-}) {
+}): Promise<string> {
   // 1. Upsert conversation
   const { data: existingConvo } = await supabaseAdmin
     .from("conversations")
@@ -130,7 +217,7 @@ async function handleIncomingMessage(args: {
       .single();
     if (convoErr || !newConvo) {
       console.error("convo create failed", convoErr);
-      return;
+      return "";
     }
     conversationId = newConvo.id;
   } else {
@@ -160,35 +247,32 @@ async function handleIncomingMessage(args: {
 
   // 4. Call Lovable AI
   const lovableKey = process.env.LOVABLE_API_KEY;
-  if (!lovableKey) {
-    console.error("LOVABLE_API_KEY missing");
-    return;
-  }
-  const systemPrompt = buildSystemPrompt(args.business);
   let reply = "Thanks for your message! We'll get back to you shortly.";
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
-        ],
-      }),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      reply = json.choices?.[0]?.message?.content ?? reply;
-    } else {
-      console.error("AI gateway error", res.status, await res.text());
+  if (lovableKey) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: buildSystemPrompt(args.business) },
+            ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
+          ],
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        reply = json.choices?.[0]?.message?.content ?? reply;
+      } else {
+        console.error("AI gateway error", res.status, await res.text());
+      }
+    } catch (e) {
+      console.error("AI call failed", e);
     }
-  } catch (e) {
-    console.error("AI call failed", e);
   }
 
   // 5. Persist assistant reply
@@ -198,24 +282,7 @@ async function handleIncomingMessage(args: {
     content: reply,
   });
 
-  // 6. Send reply via 360Dialog
-  try {
-    await fetch("https://waba-v2.360dialog.io/messages", {
-      method: "POST",
-      headers: {
-        "D360-API-KEY": args.wa.dialog_api_key,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: args.customerNumber,
-        type: "text",
-        text: { body: reply },
-      }),
-    });
-  } catch (e) {
-    console.error("360Dialog send failed", e);
-  }
+  return reply;
 }
 
 function buildSystemPrompt(b: {
