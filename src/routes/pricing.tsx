@@ -46,7 +46,7 @@ const plans: PlanCard[] = [
     price: "₦12,000",
     tagline: "Most loved by busy Nigerian sellers.",
     highlight: true,
-    badge: "Start 7-day free trial",
+    badge: "Most popular",
     features: [
       "500 AI conversations/month",
       "Everything in Starter",
