@@ -12,7 +12,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * a shared secret in the URL via WHATSAPP_WEBHOOK_TOKEN. Configure the URL as
  * https://<your-app>/api/public/whatsapp-webhook?token=<WHATSAPP_WEBHOOK_TOKEN>
  */
-export const Route = createFileRoute("/api/public/whatsapp-webhook")({
+export const Route = createFileRoute("/api/public/twilio-webhook")({
   server: {
     handlers: {
       GET: async ({ request }) => {

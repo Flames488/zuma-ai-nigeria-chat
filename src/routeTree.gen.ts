@@ -16,7 +16,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api.public.whatsapp-webhook'
+import { Route as ApiPublicTwilioWebhookRouteImport } from './routes/api.public.twilio-webhook'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api.public.paystack-webhook'
 
 const SimulatorRoute = SimulatorRouteImport.update({
@@ -54,12 +54,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicWhatsappWebhookRoute =
-  ApiPublicWhatsappWebhookRouteImport.update({
-    id: '/api/public/whatsapp-webhook',
-    path: '/api/public/whatsapp-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiPublicTwilioWebhookRoute = ApiPublicTwilioWebhookRouteImport.update({
+  id: '/api/public/twilio-webhook',
+  path: '/api/public/twilio-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaystackWebhookRoute =
   ApiPublicPaystackWebhookRouteImport.update({
     id: '/api/public/paystack-webhook',
@@ -76,7 +75,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -87,7 +86,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -99,7 +98,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
-  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,7 +111,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/api/public/paystack-webhook'
-    | '/api/public/whatsapp-webhook'
+    | '/api/public/twilio-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -123,7 +122,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/api/public/paystack-webhook'
-    | '/api/public/whatsapp-webhook'
+    | '/api/public/twilio-webhook'
   id:
     | '__root__'
     | '/'
@@ -134,7 +133,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/api/public/paystack-webhook'
-    | '/api/public/whatsapp-webhook'
+    | '/api/public/twilio-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -146,7 +145,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SimulatorRoute: typeof SimulatorRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
-  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  ApiPublicTwilioWebhookRoute: typeof ApiPublicTwilioWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -200,11 +199,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/whatsapp-webhook': {
-      id: '/api/public/whatsapp-webhook'
-      path: '/api/public/whatsapp-webhook'
-      fullPath: '/api/public/whatsapp-webhook'
-      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+    '/api/public/twilio-webhook': {
+      id: '/api/public/twilio-webhook'
+      path: '/api/public/twilio-webhook'
+      fullPath: '/api/public/twilio-webhook'
+      preLoaderRoute: typeof ApiPublicTwilioWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/paystack-webhook': {
@@ -226,7 +225,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SimulatorRoute: SimulatorRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
-  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
+  ApiPublicTwilioWebhookRoute: ApiPublicTwilioWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
