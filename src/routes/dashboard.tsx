@@ -63,9 +63,12 @@ function Dashboard() {
   const { session, loading: authLoading } = useRequireAuth();
   const callDash = useAuthedServerFn(getDashboard);
   const callSub = useAuthedServerFn(getMySubscription);
+  const callInit = useAuthedServerFn(initSubscriptionCheckout);
 
   const [name, setName] = useState("Your Business");
   const [sub, setSub] = useState<Sub | null>(null);
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const [stats, setStats] = useState({ conversationsToday: 0, ordersToday: 0, revenueToday: 0 });
   const [conversations, setConversations] = useState<
     Array<{
@@ -94,16 +97,31 @@ function Dashboard() {
         navigate({ to: "/pricing" });
         return;
       }
-      const trialExpired =
-        s.status === "trial" && s.trial_ends_at && new Date(s.trial_ends_at) < new Date();
-      if (trialExpired || s.status === "expired") {
-        navigate({ to: "/pricing" });
-        return;
-      }
+      const expired =
+        (s.status === "trial" && s.trial_ends_at && new Date(s.trial_ends_at) < new Date()) ||
+        s.status === "expired";
+      setTrialExpired(!!expired);
       setSub(s);
       setHydrating(false);
     });
   }, [session, callDash, callSub, navigate]);
+
+  const upgradeNow = async () => {
+    if (!sub) return;
+    setUpgrading(true);
+    try {
+      const res = await callInit({ data: { planId: sub.plan_id } });
+      if (!res.ok || !res.url) {
+        toast.error(res.error ?? "Couldn't open Paystack");
+        setUpgrading(false);
+        return;
+      }
+      window.location.href = res.url;
+    } catch {
+      toast.error("Couldn't reach Paystack. Try again.");
+      setUpgrading(false);
+    }
+  };
 
   const plan = sub ? PLANS[sub.plan_id] : null;
   const daysLeft =
