@@ -303,6 +303,52 @@ function Dashboard() {
           Train My AI
         </Link>
       </div>
+
+      {trialExpired && sub && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-5 animate-fade-in">
+          <div className="bg-card border border-border/60 rounded-3xl shadow-float max-w-md w-full p-7 text-center">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <Lock className="h-7 w-7 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">Your free trial has ended</h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Add your card to keep {PLANS[sub.plan_id].name} active and don't miss any customer
+              messages. ₦{PLANS[sub.plan_id].amountNaira.toLocaleString()}/month, cancel anytime.
+            </p>
+            <Button
+              onClick={upgradeNow}
+              variant="hero"
+              size="lg"
+              className="w-full mt-5"
+              disabled={upgrading}
+            >
+              {upgrading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Opening Paystack...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  Add card & continue
+                </>
+              )}
+            </Button>
+            <Link
+              to="/pricing"
+              className="block text-xs text-muted-foreground hover:text-foreground mt-4"
+            >
+              Change plan instead
+            </Link>
+            <button
+              onClick={signOut}
+              className="block w-full text-xs text-muted-foreground hover:text-foreground mt-2"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
