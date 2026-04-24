@@ -46,7 +46,7 @@ const plans: PlanCard[] = [
     price: "₦12,000",
     tagline: "Most loved by busy Nigerian sellers.",
     highlight: true,
-    badge: "Start 7-day free trial",
+    badge: "Most popular",
     features: [
       "500 AI conversations/month",
       "Everything in Starter",
@@ -79,21 +79,20 @@ function Pricing() {
     /* hydration handled by useRequireAuth */
   }, [session]);
 
-  const choose = async (planId: PlanId) => {
-    if (planId === "growth") {
-      setLoadingId(planId);
-      const res = await callTrial({ data: { planId } });
-      setLoadingId(null);
-      if (!res.ok) {
-        toast.error(res.error ?? "Couldn't start trial");
-        if (res.error?.includes("business")) navigate({ to: "/onboarding" });
-        return;
-      }
-      toast.success("Your 7-day free trial has started 🎉");
-      navigate({ to: "/dashboard" });
+  const startFreeTrial = async () => {
+    setLoadingId("growth");
+    const res = await callTrial({ data: { planId: "growth" } });
+    setLoadingId(null);
+    if (!res.ok) {
+      toast.error(res.error ?? "Couldn't start trial");
+      if (res.error?.includes("business")) navigate({ to: "/onboarding" });
       return;
     }
+    toast.success("Your 7-day free trial has started 🎉");
+    navigate({ to: "/dashboard" });
+  };
 
+  const choose = async (planId: PlanId) => {
     setLoadingId(planId);
     try {
       const res = await callInit({ data: { planId } });
@@ -143,6 +142,47 @@ function Pricing() {
             Cancel anytime. Switch plans whenever your business grows.
           </p>
         </div>
+
+        {/* Standalone free trial section */}
+        <section className="mb-10 animate-slide-up">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-primary p-6 sm:p-8 shadow-glow">
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8">
+              <div className="flex-1 text-primary-foreground">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-[11px] font-semibold mb-3">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Try Zuma AI free
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  7-day free trial — no card required
+                </h2>
+                <p className="mt-2 text-sm sm:text-base text-primary-foreground/90">
+                  Test Zuma on the Growth plan for a full week. Add your card only when you're ready
+                  to keep going.
+                </p>
+              </div>
+              <Button
+                onClick={startFreeTrial}
+                size="lg"
+                variant="secondary"
+                className="shrink-0 font-semibold sm:min-w-[200px]"
+                disabled={loadingId !== null}
+              >
+                {loadingId === "growth" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  "Start Free Trial"
+                )}
+              </Button>
+            </div>
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            Or pick a paid plan below to skip the trial.
+          </p>
+        </section>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {plans.map((p) => (
@@ -195,8 +235,6 @@ function Pricing() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Opening Paystack...
                   </>
-                ) : p.id === "growth" ? (
-                  "Start Free Trial"
                 ) : (
                   "Get Started"
                 )}
