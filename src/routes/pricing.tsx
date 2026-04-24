@@ -79,21 +79,20 @@ function Pricing() {
     /* hydration handled by useRequireAuth */
   }, [session]);
 
-  const choose = async (planId: PlanId) => {
-    if (planId === "growth") {
-      setLoadingId(planId);
-      const res = await callTrial({ data: { planId } });
-      setLoadingId(null);
-      if (!res.ok) {
-        toast.error(res.error ?? "Couldn't start trial");
-        if (res.error?.includes("business")) navigate({ to: "/onboarding" });
-        return;
-      }
-      toast.success("Your 7-day free trial has started 🎉");
-      navigate({ to: "/dashboard" });
+  const startFreeTrial = async () => {
+    setLoadingId("growth");
+    const res = await callTrial({ data: { planId: "growth" } });
+    setLoadingId(null);
+    if (!res.ok) {
+      toast.error(res.error ?? "Couldn't start trial");
+      if (res.error?.includes("business")) navigate({ to: "/onboarding" });
       return;
     }
+    toast.success("Your 7-day free trial has started 🎉");
+    navigate({ to: "/dashboard" });
+  };
 
+  const choose = async (planId: PlanId) => {
     setLoadingId(planId);
     try {
       const res = await callInit({ data: { planId } });
