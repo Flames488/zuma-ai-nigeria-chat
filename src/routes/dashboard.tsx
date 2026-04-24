@@ -13,13 +13,17 @@ import {
   Clock,
   LogOut,
   Loader2,
+  Lock,
+  CreditCard,
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useAuthedServerFn } from "@/lib/authed-fn";
 import { getDashboard } from "@/lib/server/dashboard.functions";
-import { getMySubscription } from "@/lib/server/subscription.functions";
+import { getMySubscription, initSubscriptionCheckout } from "@/lib/server/subscription.functions";
 import { PLANS, type PlanId } from "@/lib/plan";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
