@@ -173,12 +173,10 @@ function Onboarding() {
     <div className="min-h-screen bg-gradient-hero">
       <div className="mx-auto max-w-xl px-5 py-10 sm:py-16 animate-fade-in">
         <div className="flex items-center gap-3 mb-10">
-          <div className="h-11 w-11 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
-          </div>
+          <img src={wabizzLogo} alt="Wabizz logo" className="h-11 w-11 rounded-2xl object-contain shadow-glow bg-card" />
           <div>
             <h2 className="text-lg font-bold tracking-tight">Wabizz</h2>
-            <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>
+            <p className="text-xs text-muted-foreground">WhatsApp AI for Nigerian businesses</p>
           </div>
         </div>
 
