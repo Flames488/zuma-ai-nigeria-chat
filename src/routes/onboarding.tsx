@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, MessageCircle, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useAuthedServerFn } from "@/lib/authed-fn";
