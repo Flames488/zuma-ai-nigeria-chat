@@ -28,7 +28,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Zuma AI" },
+      { title: "Dashboard — Wabizz" },
       { name: "description", content: "Your live AI assistant overview and conversations." },
     ],
   }),

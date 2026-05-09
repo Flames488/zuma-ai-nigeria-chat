@@ -9,17 +9,18 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
+import wabizzLogo from "@/assets/wabizz-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Zuma AI — Your Business Never Sleeps" },
+      { title: "Wabizz — Your Business Never Sleeps" },
       {
         name: "description",
         content:
           "AI-powered WhatsApp assistant for Nigerian businesses. Handles customers, takes orders, collects payments — automatically.",
       },
-      { property: "og:title", content: "Zuma AI — Your Business Never Sleeps" },
+      { property: "og:title", content: "Wabizz — Your Business Never Sleeps" },
       {
         property: "og:description",
         content:
@@ -49,7 +50,7 @@ const features = [
   {
     icon: Clock,
     title: "Never misses a sale",
-    desc: "While you sleep, eat, or hustle — Zuma is closing deals.",
+    desc: "While you sleep, eat, or hustle — Wabizz is closing deals.",
   },
 ];
 
@@ -59,10 +60,8 @@ function Landing() {
       {/* Nav */}
       <header className="mx-auto max-w-5xl px-5 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageCircle className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-          </div>
-          <span className="font-bold tracking-tight">Zuma AI</span>
+          <img src={wabizzLogo} alt="Wabizz" className="h-9 w-9 rounded-xl object-contain shadow-glow bg-card" />
+          <span className="font-bold tracking-tight">Wabizz</span>
         </div>
         <Link
           to="/pricing"
@@ -83,7 +82,7 @@ function Landing() {
           Your Business
           <br />
           Never Sleeps With{" "}
-          <span className="bg-gradient-primary bg-clip-text text-transparent">Zuma AI</span>
+          <span className="bg-gradient-primary bg-clip-text text-transparent">Wabizz</span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
@@ -117,7 +116,7 @@ function Landing() {
               Z
             </div>
             <div>
-              <p className="text-sm font-semibold leading-tight">Zuma AI</p>
+              <p className="text-sm font-semibold leading-tight">Wabizz</p>
               <p className="text-[11px] text-success">online</p>
             </div>
           </div>
