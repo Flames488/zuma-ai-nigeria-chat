@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import wabizzLogo from "@/assets/wabizz-logo.png";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -77,9 +78,7 @@ function AuthPage() {
     <div className="min-h-screen bg-gradient-hero flex items-center px-5 py-10">
       <div className="mx-auto w-full max-w-md animate-fade-in">
         <Link to="/" className="flex items-center gap-3 mb-10">
-          <div className="h-11 w-11 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
-          </div>
+          <img src={wabizzLogo} alt="Wabizz" className="h-11 w-11 rounded-2xl object-contain shadow-glow bg-card" />
           <div>
             <h2 className="text-lg font-bold tracking-tight">Wabizz</h2>
             <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>

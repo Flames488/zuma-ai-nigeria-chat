@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
+import wabizzLogo from "@/assets/wabizz-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -59,9 +60,7 @@ function Landing() {
       {/* Nav */}
       <header className="mx-auto max-w-5xl px-5 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageCircle className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-          </div>
+          <img src={wabizzLogo} alt="Wabizz" className="h-9 w-9 rounded-xl object-contain shadow-glow bg-card" />
           <span className="font-bold tracking-tight">Wabizz</span>
         </div>
         <Link
