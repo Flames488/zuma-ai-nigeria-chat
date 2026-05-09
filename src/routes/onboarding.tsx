@@ -16,6 +16,43 @@ import { toast } from "sonner";
 import { useRequireAuth } from "@/hooks/use-auth";
 import { useAuthedServerFn } from "@/lib/authed-fn";
 import { getMyBusiness, upsertMyBusiness } from "@/lib/server/business.functions";
+import wabizzLogo from "@/assets/wabizz-logo.png";
+
+/**
+ * Validates and normalizes a Nigerian WhatsApp number.
+ * Accepts: +234XXXXXXXXXX, 234XXXXXXXXXX, 0XXXXXXXXXX (Nigerian local).
+ * Returns normalized E.164 form (+234...) or null if invalid.
+ */
+function normalizeNigerianWhatsApp(raw: string): string | null {
+  const digits = raw.replace(/[^\d+]/g, "");
+  let core = digits;
+  if (core.startsWith("+234")) core = core.slice(4);
+  else if (core.startsWith("234")) core = core.slice(3);
+  else if (core.startsWith("0")) core = core.slice(1);
+  else if (core.startsWith("+")) {
+    // Foreign number — accept if it has 8-14 digits after +
+    const rest = core.slice(1);
+    if (/^\d{8,14}$/.test(rest)) return "+" + rest;
+    return null;
+  } else {
+    return null;
+  }
+  // Nigerian mobile numbers are 10 digits after the leading 0/234
+  if (!/^\d{10}$/.test(core)) return null;
+  // Mobile prefixes start with 7, 8, or 9
+  if (!/^[789]/.test(core)) return null;
+  return "+234" + core;
+}
+
+/** Returns minutes since midnight for an "HH:MM" string, or NaN. */
+function toMinutes(t: string): number {
+  const m = /^(\d{2}):(\d{2})$/.exec(t);
+  if (!m) return NaN;
+  const h = Number(m[1]);
+  const mm = Number(m[2]);
+  if (h > 23 || mm > 59) return NaN;
+  return h * 60 + mm;
+}
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -66,17 +103,37 @@ function Onboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim()) return toast.error("Oga, please enter your business name first 😄");
+    if (!businessName.trim() || businessName.trim().length < 2)
+      return toast.error("Oga, please enter your business name first 😄");
+    if (businessName.trim().length > 80)
+      return toast.error("Wahala! Business name too long — keep it under 80 characters ✂️");
     if (!businessType) return toast.error("Abeg, tell us what you sell 🛍️");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
       return toast.error("Oga, drop a valid email so we can send your receipts 📧");
-    const cleaned = whatsapp.replace(/[\s-]/g, "");
-    if (!cleaned || cleaned.replace(/^\+/, "").length < 10)
-      return toast.error("Drop a valid WhatsApp number, my friend 📱");
-    if (!openTime || !closeTime || openTime === closeTime)
+
+    const normalized = normalizeNigerianWhatsApp(whatsapp);
+    if (!normalized)
+      return toast.error(
+        "That WhatsApp number no correct o 📱 Use 0801 234 5678 or +234 801 234 5678",
+      );
+
+    const open = toMinutes(openTime);
+    const close = toMinutes(closeTime);
+    if (Number.isNaN(open) || Number.isNaN(close))
       return toast.error("Set proper open and close times ⏰");
+    if (open === close)
+      return toast.error("Haba! Open and close time can't be the same ⏰");
+    if (close <= open)
+      return toast.error(
+        "Your closing time must be after opening time 🕐 (e.g. 09:00 → 20:00)",
+      );
+    if (close - open < 60)
+      return toast.error("Open at least 1 hour — give your customers small breathing room 🙏");
+
     if (!productsList.trim() || productsList.trim().length < 5)
       return toast.error("Add at least one product so your AI knows what to sell 🧺");
+    // Update field with normalized number so DB stores clean form
+    setWhatsapp(normalized);
 
     setSubmitting(true);
     try {
@@ -85,7 +142,7 @@ function Onboarding() {
           name: businessName.trim(),
           type: businessType,
           email: email.trim(),
-          whatsapp: whatsapp.trim(),
+          whatsapp: normalizeNigerianWhatsApp(whatsapp) ?? whatsapp.trim(),
           open_time: openTime,
           close_time: closeTime,
           products_list: productsList.trim(),
