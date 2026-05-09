@@ -54,7 +54,7 @@ function serializeProducts(products: Product[]): string {
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Train My AI — Zuma AI" },
+      { title: "Train My AI — Wabizz" },
       { name: "description", content: "Customize your AI assistant's products, tone, and replies." },
     ],
   }),
@@ -285,7 +285,7 @@ function SettingsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Connect WhatsApp</DialogTitle>
-            <DialogDescription>Use 360Dialog to plug your WhatsApp Business number into Zuma AI.</DialogDescription>
+            <DialogDescription>Use 360Dialog to plug your WhatsApp Business number into Wabizz.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">

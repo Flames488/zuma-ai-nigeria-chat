@@ -15,7 +15,7 @@ import { generateOrderPaymentLink } from "@/lib/server/payment-link.functions";
 export const Route = createFileRoute("/simulator")({
   head: () => ({
     meta: [
-      { title: "AI Simulator — Zuma AI" },
+      { title: "AI Simulator — Wabizz" },
       { name: "description", content: "Test how your AI assistant replies to customers." },
     ],
   }),

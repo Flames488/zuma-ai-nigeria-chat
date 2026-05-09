@@ -10,8 +10,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Zuma AI" },
-      { name: "description", content: "Sign in or create your Zuma AI account." },
+      { title: "Sign in — Wabizz" },
+      { name: "description", content: "Sign in or create your Wabizz account." },
     ],
   }),
   component: AuthPage,
@@ -81,7 +81,7 @@ function AuthPage() {
             <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Zuma AI</h2>
+            <h2 className="text-lg font-bold tracking-tight">Wabizz</h2>
             <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>
           </div>
         </Link>
@@ -93,7 +93,7 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Sign in to manage your AI assistant."
-              : "Set up your Zuma AI assistant in 2 minutes."}
+              : "Set up your Wabizz assistant in 2 minutes."}
           </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
@@ -134,7 +134,7 @@ function AuthPage() {
           </form>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "New to Zuma?" : "Already have an account?"}{" "}
+            {mode === "signin" ? "New to Wabizz?" : "Already have an account?"}{" "}
             <button
               type="button"
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}

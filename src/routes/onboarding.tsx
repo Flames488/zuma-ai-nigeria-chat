@@ -20,7 +20,7 @@ import { getMyBusiness, upsertMyBusiness } from "@/lib/server/business.functions
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Zuma AI — Your WhatsApp Business Assistant" },
+      { title: "Wabizz — Your WhatsApp Business Assistant" },
       {
         name: "description",
         content:
@@ -120,7 +120,7 @@ function Onboarding() {
             <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Zuma AI</h2>
+            <h2 className="text-lg font-bold tracking-tight">Wabizz</h2>
             <p className="text-xs text-muted-foreground">WhatsApp business, on autopilot</p>
           </div>
         </div>

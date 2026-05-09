@@ -11,11 +11,11 @@ import { initSubscriptionCheckout, startTrial } from "@/lib/server/subscription.
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Choose Your Plan — Zuma AI" },
+      { title: "Choose Your Plan — Wabizz" },
       {
         name: "description",
         content:
-          "Pick a Zuma AI plan that fits your business. Starter, Growth, or Pro — built for Nigerian businesses.",
+          "Pick a Wabizz plan that fits your business. Starter, Growth, or Pro — built for Nigerian businesses.",
       },
     ],
   }),
@@ -128,7 +128,7 @@ function Pricing() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <span className="font-bold tracking-tight">Zuma AI</span>
+        <span className="font-bold tracking-tight">Wabizz</span>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pt-4 animate-fade-in">
@@ -151,13 +151,13 @@ function Pricing() {
               <div className="flex-1 text-primary-foreground">
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-[11px] font-semibold mb-3">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Try Zuma AI free
+                  Try Wabizz free
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
                   7-day free trial — no card required
                 </h2>
                 <p className="mt-2 text-sm sm:text-base text-primary-foreground/90">
-                  Test Zuma on the Growth plan for a full week. Add your card only when you're ready
+                  Test Wabizz on the Growth plan for a full week. Add your card only when you're ready
                   to keep going.
                 </p>
               </div>
