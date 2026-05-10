@@ -60,6 +60,11 @@ export const Route = createFileRoute("/api/public/twilio-webhook")({
         const customerNumber = stripWhatsappPrefix(from);
         const businessNumber = stripWhatsappPrefix(to);
 
+        const rawPayload: Record<string, string> = {};
+        params.forEach((v, k) => {
+          rawPayload[k] = v;
+        });
+
         // Match the receiving Twilio number to a business.
         const { data: wa } = await supabaseAdmin
           .from("whatsapp_config")
@@ -70,6 +75,16 @@ export const Route = createFileRoute("/api/public/twilio-webhook")({
           .maybeSingle();
         if (!wa) {
           console.warn("No business matched Twilio number", businessNumber);
+          await logWebhook({
+            business_id: null,
+            from_number: customerNumber,
+            to_number: businessNumber,
+            inbound_message: body,
+            ai_response: null,
+            send_status: "no_business_match",
+            error: `No business matched ${businessNumber}`,
+            raw: rawPayload,
+          });
           return twimlResponse("");
         }
 
@@ -80,7 +95,19 @@ export const Route = createFileRoute("/api/public/twilio-webhook")({
           )
           .eq("id", wa.business_id)
           .maybeSingle();
-        if (!biz) return twimlResponse("");
+        if (!biz) {
+          await logWebhook({
+            business_id: wa.business_id,
+            from_number: customerNumber,
+            to_number: businessNumber,
+            inbound_message: body,
+            ai_response: null,
+            send_status: "business_missing",
+            error: "Business row not found",
+            raw: rawPayload,
+          });
+          return twimlResponse("");
+        }
 
         const reply = await handleIncomingMessage({
           business: biz,
@@ -90,9 +117,24 @@ export const Route = createFileRoute("/api/public/twilio-webhook")({
         });
 
         // Send the reply back via the Twilio API (so it goes from the same WA sender).
+        let sendStatus: string = "no_reply";
+        let sendError: string | null = null;
         if (reply) {
-          await sendTwilioWhatsapp({ to: from, from: to, body: reply });
+          const sendRes = await sendTwilioWhatsapp({ to: from, from: to, body: reply });
+          sendStatus = sendRes.ok ? "sent" : "send_failed";
+          sendError = sendRes.error;
         }
+
+        await logWebhook({
+          business_id: biz.id,
+          from_number: customerNumber,
+          to_number: businessNumber,
+          inbound_message: body,
+          ai_response: reply || null,
+          send_status: sendStatus,
+          error: sendError,
+          raw: rawPayload,
+        });
 
         // Respond with empty TwiML — we already sent the reply via the REST API.
         return twimlResponse("");
@@ -151,12 +193,12 @@ function verifyTwilioSignature(
   }
 }
 
-async function sendTwilioWhatsapp(args: { to: string; from: string; body: string }) {
+async function sendTwilioWhatsapp(args: { to: string; from: string; body: string }): Promise<{ ok: boolean; error: string | null }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const twilioKey = process.env.TWILIO_API_KEY;
   if (!lovableKey || !twilioKey) {
     console.error("Twilio gateway credentials missing");
-    return;
+    return { ok: false, error: "Twilio gateway credentials missing" };
   }
   try {
     const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
@@ -173,10 +215,34 @@ async function sendTwilioWhatsapp(args: { to: string; from: string; body: string
       }),
     });
     if (!res.ok) {
-      console.error("Twilio send failed", res.status, await res.text());
+      const text = await res.text();
+      console.error("Twilio send failed", res.status, text);
+      return { ok: false, error: `Twilio ${res.status}: ${text.slice(0, 200)}` };
     }
+    return { ok: true, error: null };
   } catch (e) {
     console.error("Twilio send error", e);
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown send error" };
+  }
+}
+
+async function logWebhook(row: {
+  business_id: string | null;
+  from_number: string;
+  to_number: string;
+  inbound_message: string;
+  ai_response: string | null;
+  send_status: string;
+  error: string | null;
+  raw: Record<string, string>;
+}) {
+  try {
+    await supabaseAdmin.from("webhook_logs").insert({
+      provider: "twilio",
+      ...row,
+    });
+  } catch (e) {
+    console.error("Failed to write webhook_logs", e);
   }
 }
 
