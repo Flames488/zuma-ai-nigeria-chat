@@ -131,9 +131,14 @@ function Landing() {
             <a href="#how" className="hover:text-foreground transition-smooth">How it works</a>
             <Link to="/pricing" className="hover:text-foreground transition-smooth">Pricing</Link>
           </nav>
-          <Link to="/auth">
-            <Button size="sm" variant="hero">Get Started</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/auth" className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+              Sign in
+            </Link>
+            <Link to="/auth">
+              <Button size="sm" variant="hero">Get Started</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -198,11 +203,6 @@ function Landing() {
             </div>
           </div>
 
-          {/* Hero phone mockup */}
-          <div className="relative animate-slide-up">
-            <div className="absolute -inset-6 bg-gradient-primary opacity-20 blur-3xl rounded-full" />
-            <PhoneFrame conversation={demoConversation.slice(0, 4)} />
-          </div>
         </div>
 
         {/* Trust strip */}
