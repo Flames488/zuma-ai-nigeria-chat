@@ -259,6 +259,56 @@ export type Database = {
           },
         ]
       }
+      webhook_logs: {
+        Row: {
+          ai_response: string | null
+          business_id: string | null
+          created_at: string
+          error: string | null
+          from_number: string | null
+          id: string
+          inbound_message: string | null
+          provider: string
+          raw: Json | null
+          send_status: string
+          to_number: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          business_id?: string | null
+          created_at?: string
+          error?: string | null
+          from_number?: string | null
+          id?: string
+          inbound_message?: string | null
+          provider?: string
+          raw?: Json | null
+          send_status?: string
+          to_number?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          business_id?: string | null
+          created_at?: string
+          error?: string | null
+          from_number?: string | null
+          id?: string
+          inbound_message?: string | null
+          provider?: string
+          raw?: Json | null
+          send_status?: string
+          to_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_config: {
         Row: {
           business_id: string
