@@ -131,16 +131,21 @@ function Landing() {
             <a href="#how" className="hover:text-foreground transition-smooth">How it works</a>
             <Link to="/pricing" className="hover:text-foreground transition-smooth">Pricing</Link>
           </nav>
-          <Link to="/auth">
-            <Button size="sm" variant="hero">Get Started</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/auth" className="hidden sm:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+              Sign in
+            </Link>
+            <Link to="/auth">
+              <Button size="sm" variant="hero">Get Started</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Hero */}
       <main className="mx-auto max-w-6xl px-5 pt-12 sm:pt-20 pb-20 animate-fade-in">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="text-center lg:text-left">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-6">
               <Sparkles className="h-3.5 w-3.5" />
               Built for Nigerian businesses
@@ -198,11 +203,6 @@ function Landing() {
             </div>
           </div>
 
-          {/* Hero phone mockup */}
-          <div className="relative animate-slide-up">
-            <div className="absolute -inset-6 bg-gradient-primary opacity-20 blur-3xl rounded-full" />
-            <PhoneFrame conversation={demoConversation.slice(0, 4)} />
-          </div>
         </div>
 
         {/* Trust strip */}
