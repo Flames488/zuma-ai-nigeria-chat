@@ -233,7 +233,9 @@ function Dashboard() {
         <section>
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold">Recent conversations</h2>
-            <span className="text-xs text-muted-foreground">Live feed</span>
+            <Link to="/webhook-logs" className="text-xs text-primary font-medium hover:underline">
+              Webhook logs →
+            </Link>
           </div>
           <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
             {conversations.length === 0 && (
