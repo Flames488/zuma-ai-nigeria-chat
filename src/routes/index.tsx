@@ -144,8 +144,8 @@ function Landing() {
 
       {/* Hero */}
       <main className="mx-auto max-w-6xl px-5 pt-12 sm:pt-20 pb-20 animate-fade-in">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="text-center lg:text-left">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-6">
               <Sparkles className="h-3.5 w-3.5" />
               Built for Nigerian businesses
