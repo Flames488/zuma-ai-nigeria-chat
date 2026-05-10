@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WebhookLogsRouteImport } from './routes/webhook-logs'
 import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicTwilioWebhookRouteImport } from './routes/api.public.twilio-webhook'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api.public.paystack-webhook'
 
+const WebhookLogsRoute = WebhookLogsRouteImport.update({
+  id: '/webhook-logs',
+  path: '/webhook-logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SimulatorRoute = SimulatorRouteImport.update({
   id: '/simulator',
   path: '/simulator',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
+  '/webhook-logs': typeof WebhookLogsRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
+  '/webhook-logs': typeof WebhookLogsRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
+  '/webhook-logs': typeof WebhookLogsRoute
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
 }
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/settings'
     | '/simulator'
+    | '/webhook-logs'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/settings'
     | '/simulator'
+    | '/webhook-logs'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
   id:
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/settings'
     | '/simulator'
+    | '/webhook-logs'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
   fileRoutesById: FileRoutesById
@@ -144,12 +156,20 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SettingsRoute: typeof SettingsRoute
   SimulatorRoute: typeof SimulatorRoute
+  WebhookLogsRoute: typeof WebhookLogsRoute
   ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
   ApiPublicTwilioWebhookRoute: typeof ApiPublicTwilioWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/webhook-logs': {
+      id: '/webhook-logs'
+      path: '/webhook-logs'
+      fullPath: '/webhook-logs'
+      preLoaderRoute: typeof WebhookLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/simulator': {
       id: '/simulator'
       path: '/simulator'
@@ -224,9 +244,19 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SettingsRoute: SettingsRoute,
   SimulatorRoute: SimulatorRoute,
+  WebhookLogsRoute: WebhookLogsRoute,
   ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
   ApiPublicTwilioWebhookRoute: ApiPublicTwilioWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
