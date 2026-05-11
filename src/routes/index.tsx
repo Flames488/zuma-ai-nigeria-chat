@@ -257,16 +257,16 @@ function Landing() {
             </p>
           </div>
 
-          <div className="mt-10 grid lg:grid-cols-[420px_1fr] gap-8 items-center">
-            <div className="mx-auto">
-              <PhoneFrame conversation={demoConversation} animated />
+          <div className="mt-10 grid lg:grid-cols-[420px_1fr] gap-8 items-start">
+            <div className="mx-auto w-full max-w-[360px]">
+              <InteractiveDemo />
             </div>
 
             <div className="space-y-4">
               {[
                 { icon: Bot, title: "Understands intent", desc: "Knows the customer wants the blue Ankara gown — not just any product." },
                 { icon: ShoppingBag, title: "Captures order details", desc: "Collects size, delivery address and contact without you lifting a finger." },
-                { icon: Wallet, title: "Sends payment link", desc: "Generates a Paystack link in real time — money lands in your bank." },
+                { icon: Wallet, title: "Sends payment link", desc: `Generates a Paystack link in real time — money lands in your bank. Order #${DEMO_ORDER.ref}.` },
                 { icon: TrendingUp, title: "Closes the loop", desc: "Confirms payment, schedules dispatch, and delights your customer." },
               ].map((item) => (
                 <div key={item.title} className="flex gap-4 bg-card rounded-2xl p-5 border border-border/50 shadow-sm">
