@@ -73,7 +73,20 @@ const features = [
 
 type ChatMsg = { from: "customer" | "bot"; text: string; time: string };
 
-const demoConversation: ChatMsg[] = [
+// Single source of truth for the demo order
+const DEMO_ORDER = {
+  ref: "WBZ-2041",
+  payRef: "wabizz-x84n-2041",
+  amountNaira: 17500,
+  customerName: "Adaeze",
+  deliveryArea: "Lekki Phase 1",
+  rider: "Tunde",
+};
+
+const paystackLink = `https://paystack.com/pay/${DEMO_ORDER.payRef}`;
+
+// Phase 1 — runs automatically, ends with customer "Paying now…"
+const initialConversation: ChatMsg[] = [
   { from: "customer", text: "Good morning, una dey sell Ankara?", time: "9:02" },
   { from: "bot", text: "Good morning dear! 🌞 Yes o, we sell quality Ankara gowns, senator wear and Aso-ebi. What style catch your eye today?", time: "9:02" },
   { from: "customer", text: "I dey find something for owambe this Saturday", time: "9:03" },
@@ -82,18 +95,22 @@ const demoConversation: ChatMsg[] = [
   { from: "bot", text: "The Royal Blue Ankara gown is ₦15,000 💙 — premium wax fabric, fits sizes 8 to 18. Want me to reserve one for you?", time: "9:04" },
   { from: "customer", text: "Yes please. Size 12.", time: "9:05" },
   { from: "bot", text: "Sweet 🙌 Size 12 reserved. Where should we deliver, and do you want same-day or next-day dispatch?", time: "9:05" },
-  { from: "customer", text: "Lekki Phase 1. Same-day if possible 🙏", time: "9:06" },
-  { from: "bot", text: "Same-day to Lekki Phase 1 = ₦2,500 delivery (rider arrives 2 – 4pm). Total comes to ₦17,500. Shall I proceed?", time: "9:06" },
+  { from: "customer", text: `${DEMO_ORDER.deliveryArea}. Same-day if possible 🙏`, time: "9:06" },
+  { from: "bot", text: `Same-day to ${DEMO_ORDER.deliveryArea} = ₦2,500 delivery (rider arrives 2 – 4pm). Total comes to ₦${DEMO_ORDER.amountNaira.toLocaleString()}. Shall I proceed?`, time: "9:06" },
   { from: "customer", text: "Yes proceed", time: "9:07" },
   { from: "bot", text: "Lovely ✨ Just need your name & phone number to tag the order.", time: "9:07" },
-  { from: "customer", text: "Adaeze Okoro, 0803 555 1212", time: "9:08" },
-  { from: "bot", text: "Thanks Adaeze 🙌 Here's your secure Paystack link:\nhttps://paystack.com/pay/wabizz-x84n\n\nReply PAID once payment goes through and we'll dispatch immediately.", time: "9:08" },
+  { from: "customer", text: `${DEMO_ORDER.customerName} Okoro, 0803 555 1212`, time: "9:08" },
+  { from: "bot", text: `Thanks ${DEMO_ORDER.customerName} 🙌 Here's your secure Paystack link for ₦${DEMO_ORDER.amountNaira.toLocaleString()}:\n${paystackLink}\n\nReply PAID once payment goes through and we'll dispatch immediately.`, time: "9:08" },
   { from: "customer", text: "Paying now…", time: "9:10" },
+];
+
+// Phase 2 — appended after the simulated Paystack payment succeeds
+const paidConversation: ChatMsg[] = [
   { from: "customer", text: "PAID ✅", time: "9:12" },
-  { from: "bot", text: "Payment confirmed! 🎉 Order #WBZ-2041 is being packed now.", time: "9:12" },
-  { from: "bot", text: "Dispatch rider Tunde 🛵 will arrive Lekki Phase 1 between 2 – 4pm today. I'll send tracking shortly.", time: "9:13" },
+  { from: "bot", text: `Payment confirmed! 🎉 Order #${DEMO_ORDER.ref} is being packed now.`, time: "9:12" },
+  { from: "bot", text: `Dispatch rider ${DEMO_ORDER.rider} 🛵 will arrive ${DEMO_ORDER.deliveryArea} between 2 – 4pm today. I'll send tracking shortly.`, time: "9:13" },
   { from: "customer", text: "You guys are too sweet 😍", time: "9:14" },
-  { from: "bot", text: "Aww thank you Adaeze 💚 Enjoy the owambe — send us a pic, we go gas you up! 📸", time: "9:14" },
+  { from: "bot", text: `Aww thank you ${DEMO_ORDER.customerName} 💚 Enjoy the owambe — send us a pic, we go gas you up! 📸`, time: "9:14" },
 ];
 
 const stats = [
