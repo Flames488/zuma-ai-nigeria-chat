@@ -397,12 +397,46 @@ function Landing() {
   );
 }
 
-function PhoneFrame({ conversation, animated = false }: { conversation: ChatMsg[]; animated?: boolean }) {
+function renderMessageText(text: string, onLinkClick?: () => void) {
+  const parts = text.split(/(https?:\/\/\S+)/g);
+  return parts.map((part, i) => {
+    if (/^https?:\/\//.test(part)) {
+      return (
+        <button
+          key={i}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            onLinkClick?.();
+          }}
+          className="text-[#0b76d3] underline break-all hover:opacity-80"
+        >
+          {part}
+        </button>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function PhoneFrame({
+  conversation,
+  animated = false,
+  onLinkClick,
+  autoScrollKey,
+}: {
+  conversation: ChatMsg[];
+  animated?: boolean;
+  onLinkClick?: () => void;
+  autoScrollKey?: string | number;
+}) {
+  const scrollRef = (el: HTMLDivElement | null) => {
+    if (el) el.scrollTop = el.scrollHeight;
+  };
   return (
     <div className="relative mx-auto w-full max-w-[340px] aspect-[9/19] bg-foreground rounded-[2.5rem] p-2.5 shadow-float">
       <div className="absolute top-3 left-1/2 -translate-x-1/2 h-5 w-24 bg-foreground rounded-b-2xl z-10" />
       <div className="h-full w-full bg-[#e5ddd5] rounded-[2rem] overflow-hidden flex flex-col">
-        {/* WhatsApp header */}
         <div className="bg-[#075e54] text-white px-4 pt-8 pb-3 flex items-center gap-3 shrink-0">
           <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">W</div>
           <div className="flex-1 min-w-0">
@@ -412,8 +446,9 @@ function PhoneFrame({ conversation, animated = false }: { conversation: ChatMsg[
           <Bot className="h-4 w-4 text-white/80" />
         </div>
 
-        {/* Messages */}
         <div
+          key={autoScrollKey}
+          ref={scrollRef}
           className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5"
           style={{
             backgroundImage:
@@ -426,7 +461,7 @@ function PhoneFrame({ conversation, animated = false }: { conversation: ChatMsg[
               className={`flex ${m.from === "bot" ? "justify-end" : "justify-start"} ${
                 animated ? "animate-fade-in" : ""
               }`}
-              style={animated ? { animationDelay: `${i * 0.15}s`, animationFillMode: "both" } : undefined}
+              style={animated ? { animationDelay: `${Math.min(i, 6) * 0.12}s`, animationFillMode: "both" } : undefined}
             >
               <div
                 className={`max-w-[80%] px-2.5 py-1.5 rounded-lg text-[12.5px] leading-snug shadow-sm whitespace-pre-line ${
@@ -435,13 +470,116 @@ function PhoneFrame({ conversation, animated = false }: { conversation: ChatMsg[
                     : "bg-white text-foreground rounded-tl-sm"
                 }`}
               >
-                {m.text}
+                {renderMessageText(m.text, onLinkClick)}
                 <div className="text-[9px] text-muted-foreground/70 text-right mt-0.5">{m.time}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+type DemoStatus = "needs-you" | "processing" | "handled";
+
+function InteractiveDemo() {
+  const [conversation, setConversation] = useState<ChatMsg[]>(initialConversation);
+  const [status, setStatus] = useState<DemoStatus>("needs-you");
+  const [payOpen, setPayOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const paid = status === "handled";
+
+  const triggerPay = () => {
+    if (paid || paying) return;
+    setPayOpen(true);
+  };
+
+  const confirmPayment = async () => {
+    setPaying(true);
+    setStatus("processing");
+    // Simulate Paystack round-trip
+    await new Promise((r) => setTimeout(r, 1200));
+    setPayOpen(false);
+    setPaying(false);
+    // Append the post-payment messages one by one
+    for (let i = 0; i < paidConversation.length; i++) {
+      await new Promise((r) => setTimeout(r, 700));
+      setConversation((prev) => [...prev, paidConversation[i]]);
+    }
+    setStatus("handled");
+  };
+
+  const reset = () => {
+    setConversation(initialConversation);
+    setStatus("needs-you");
+  };
+
+  const statusMeta = useMemo(() => {
+    if (status === "handled")
+      return { label: "Handled", className: "bg-success/15 text-success border-success/30", icon: CheckCircle2 };
+    if (status === "processing")
+      return { label: "Processing payment…", className: "bg-warning/15 text-warning border-warning/30", icon: Loader2 };
+    return { label: "Needs you", className: "bg-destructive/10 text-destructive border-destructive/30", icon: AlertCircle };
+  }, [status]);
+  const StatusIcon = statusMeta.icon;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="text-xs font-medium text-muted-foreground">
+          Order <span className="font-mono text-foreground">#{DEMO_ORDER.ref}</span>
+        </div>
+        <div
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-smooth ${statusMeta.className}`}
+        >
+          <StatusIcon className={`h-3 w-3 ${status === "processing" ? "animate-spin" : ""}`} />
+          {statusMeta.label}
+        </div>
+      </div>
+
+      <PhoneFrame conversation={conversation} animated autoScrollKey={conversation.length} onLinkClick={triggerPay} />
+
+      <div className="flex gap-2">
+        {!paid ? (
+          <Button
+            onClick={triggerPay}
+            disabled={paying}
+            variant="hero"
+            size="sm"
+            className="flex-1"
+          >
+            <Wallet className="h-4 w-4" />
+            {paying ? "Processing…" : `Simulate Paystack payment · ₦${DEMO_ORDER.amountNaira.toLocaleString()}`}
+          </Button>
+        ) : (
+          <Button onClick={reset} variant="outline" size="sm" className="flex-1">
+            Replay demo
+          </Button>
+        )}
+      </div>
+
+      <Dialog open={payOpen} onOpenChange={(o) => !paying && setPayOpen(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Paystack Checkout (Demo)</DialogTitle>
+            <DialogDescription>
+              You're paying Mama Nkechi Fashion for order #{DEMO_ORDER.ref}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="font-semibold">₦{DEMO_ORDER.amountNaira.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Reference</span><span className="font-mono text-xs">{DEMO_ORDER.payRef}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{DEMO_ORDER.customerName}</span></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(false)} disabled={paying}>Cancel</Button>
+            <Button onClick={confirmPayment} disabled={paying} variant="hero">
+              {paying ? <><Loader2 className="h-4 w-4 animate-spin" /> Confirming…</> : "Pay ₦" + DEMO_ORDER.amountNaira.toLocaleString()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
