@@ -145,6 +145,23 @@ const testimonials = [
 ];
 
 function Landing() {
+  // Runtime error logging for the landing preview — surfaces broken assets,
+  // missing data, or unhandled promise rejections without crashing the page.
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => {
+      console.error("[Landing runtime error]", e.message, e.filename, e.lineno);
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      console.error("[Landing unhandled rejection]", e.reason);
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Nav */}
