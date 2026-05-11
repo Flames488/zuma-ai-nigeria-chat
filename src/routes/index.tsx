@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   MessageCircle,
   Sparkles,
@@ -14,6 +23,8 @@ import {
   TrendingUp,
   Star,
   Quote,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import wabizzLogo from "@/assets/wabizz-logo.png";
 
