@@ -21,10 +21,10 @@ async function getOwnedBusinessId(supabase: any, userId: string): Promise<string
 
 export const listMyNiches = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<{ businessId: string | null; niches: Array<{ id: string; niche_type: "hospital" | "food"; active: boolean; config: Record<string, any> }> }> => {
     const { supabase, userId } = context;
     const businessId = await getOwnedBusinessId(supabase, userId);
-    if (!businessId) return { businessId: null, niches: [] as Array<{ id: string; niche_type: "hospital" | "food"; active: boolean; config: Record<string, unknown> }> };
+    if (!businessId) return { businessId: null, niches: [] };
     const { data, error } = await supabase
       .from("niche_configs")
       .select("id, niche_type, active, config")
