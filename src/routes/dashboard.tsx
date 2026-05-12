@@ -233,9 +233,14 @@ function Dashboard() {
         <section>
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-semibold">Recent conversations</h2>
-            <Link to="/webhook-logs" className="text-xs text-primary font-medium hover:underline">
-              Webhook logs →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link to="/dashboard/niche" className="text-xs text-primary font-medium hover:underline">
+                Niche modules →
+              </Link>
+              <Link to="/webhook-logs" className="text-xs text-primary font-medium hover:underline">
+                Webhook logs →
+              </Link>
+            </div>
           </div>
           <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
             {conversations.length === 0 && (

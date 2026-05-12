@@ -17,8 +17,13 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardNicheRouteImport } from './routes/dashboard.niche'
+import { Route as DashboardNicheHospitalRouteImport } from './routes/dashboard.niche.hospital'
+import { Route as DashboardNicheFoodRouteImport } from './routes/dashboard.niche.food'
 import { Route as ApiPublicTwilioWebhookRouteImport } from './routes/api.public.twilio-webhook'
 import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api.public.paystack-webhook'
+import { Route as DashboardNicheFoodOrdersRouteImport } from './routes/dashboard.niche.food.orders'
+import { Route as DashboardNicheFoodMenuRouteImport } from './routes/dashboard.niche.food.menu'
 
 const WebhookLogsRoute = WebhookLogsRouteImport.update({
   id: '/webhook-logs',
@@ -60,6 +65,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardNicheRoute = DashboardNicheRouteImport.update({
+  id: '/niche',
+  path: '/niche',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardNicheHospitalRoute = DashboardNicheHospitalRouteImport.update({
+  id: '/hospital',
+  path: '/hospital',
+  getParentRoute: () => DashboardNicheRoute,
+} as any)
+const DashboardNicheFoodRoute = DashboardNicheFoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => DashboardNicheRoute,
+} as any)
 const ApiPublicTwilioWebhookRoute = ApiPublicTwilioWebhookRouteImport.update({
   id: '/api/public/twilio-webhook',
   path: '/api/public/twilio-webhook',
@@ -71,43 +91,69 @@ const ApiPublicPaystackWebhookRoute =
     path: '/api/public/paystack-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DashboardNicheFoodOrdersRoute =
+  DashboardNicheFoodOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => DashboardNicheFoodRoute,
+  } as any)
+const DashboardNicheFoodMenuRoute = DashboardNicheFoodMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => DashboardNicheFoodRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/webhook-logs': typeof WebhookLogsRoute
+  '/dashboard/niche': typeof DashboardNicheRouteWithChildren
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
+  '/dashboard/niche/food': typeof DashboardNicheFoodRouteWithChildren
+  '/dashboard/niche/hospital': typeof DashboardNicheHospitalRoute
+  '/dashboard/niche/food/menu': typeof DashboardNicheFoodMenuRoute
+  '/dashboard/niche/food/orders': typeof DashboardNicheFoodOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/webhook-logs': typeof WebhookLogsRoute
+  '/dashboard/niche': typeof DashboardNicheRouteWithChildren
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
+  '/dashboard/niche/food': typeof DashboardNicheFoodRouteWithChildren
+  '/dashboard/niche/hospital': typeof DashboardNicheHospitalRoute
+  '/dashboard/niche/food/menu': typeof DashboardNicheFoodMenuRoute
+  '/dashboard/niche/food/orders': typeof DashboardNicheFoodOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/settings': typeof SettingsRoute
   '/simulator': typeof SimulatorRoute
   '/webhook-logs': typeof WebhookLogsRoute
+  '/dashboard/niche': typeof DashboardNicheRouteWithChildren
   '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
   '/api/public/twilio-webhook': typeof ApiPublicTwilioWebhookRoute
+  '/dashboard/niche/food': typeof DashboardNicheFoodRouteWithChildren
+  '/dashboard/niche/hospital': typeof DashboardNicheHospitalRoute
+  '/dashboard/niche/food/menu': typeof DashboardNicheFoodMenuRoute
+  '/dashboard/niche/food/orders': typeof DashboardNicheFoodOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,8 +166,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/webhook-logs'
+    | '/dashboard/niche'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
+    | '/dashboard/niche/food'
+    | '/dashboard/niche/hospital'
+    | '/dashboard/niche/food/menu'
+    | '/dashboard/niche/food/orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,8 +183,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/webhook-logs'
+    | '/dashboard/niche'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
+    | '/dashboard/niche/food'
+    | '/dashboard/niche/hospital'
+    | '/dashboard/niche/food/menu'
+    | '/dashboard/niche/food/orders'
   id:
     | '__root__'
     | '/'
@@ -144,14 +200,19 @@ export interface FileRouteTypes {
     | '/settings'
     | '/simulator'
     | '/webhook-logs'
+    | '/dashboard/niche'
     | '/api/public/paystack-webhook'
     | '/api/public/twilio-webhook'
+    | '/dashboard/niche/food'
+    | '/dashboard/niche/hospital'
+    | '/dashboard/niche/food/menu'
+    | '/dashboard/niche/food/orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
   SettingsRoute: typeof SettingsRoute
@@ -219,6 +280,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/niche': {
+      id: '/dashboard/niche'
+      path: '/niche'
+      fullPath: '/dashboard/niche'
+      preLoaderRoute: typeof DashboardNicheRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/niche/hospital': {
+      id: '/dashboard/niche/hospital'
+      path: '/hospital'
+      fullPath: '/dashboard/niche/hospital'
+      preLoaderRoute: typeof DashboardNicheHospitalRouteImport
+      parentRoute: typeof DashboardNicheRoute
+    }
+    '/dashboard/niche/food': {
+      id: '/dashboard/niche/food'
+      path: '/food'
+      fullPath: '/dashboard/niche/food'
+      preLoaderRoute: typeof DashboardNicheFoodRouteImport
+      parentRoute: typeof DashboardNicheRoute
+    }
     '/api/public/twilio-webhook': {
       id: '/api/public/twilio-webhook'
       path: '/api/public/twilio-webhook'
@@ -233,13 +315,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/niche/food/orders': {
+      id: '/dashboard/niche/food/orders'
+      path: '/orders'
+      fullPath: '/dashboard/niche/food/orders'
+      preLoaderRoute: typeof DashboardNicheFoodOrdersRouteImport
+      parentRoute: typeof DashboardNicheFoodRoute
+    }
+    '/dashboard/niche/food/menu': {
+      id: '/dashboard/niche/food/menu'
+      path: '/menu'
+      fullPath: '/dashboard/niche/food/menu'
+      preLoaderRoute: typeof DashboardNicheFoodMenuRouteImport
+      parentRoute: typeof DashboardNicheFoodRoute
+    }
   }
 }
+
+interface DashboardNicheFoodRouteChildren {
+  DashboardNicheFoodMenuRoute: typeof DashboardNicheFoodMenuRoute
+  DashboardNicheFoodOrdersRoute: typeof DashboardNicheFoodOrdersRoute
+}
+
+const DashboardNicheFoodRouteChildren: DashboardNicheFoodRouteChildren = {
+  DashboardNicheFoodMenuRoute: DashboardNicheFoodMenuRoute,
+  DashboardNicheFoodOrdersRoute: DashboardNicheFoodOrdersRoute,
+}
+
+const DashboardNicheFoodRouteWithChildren =
+  DashboardNicheFoodRoute._addFileChildren(DashboardNicheFoodRouteChildren)
+
+interface DashboardNicheRouteChildren {
+  DashboardNicheFoodRoute: typeof DashboardNicheFoodRouteWithChildren
+  DashboardNicheHospitalRoute: typeof DashboardNicheHospitalRoute
+}
+
+const DashboardNicheRouteChildren: DashboardNicheRouteChildren = {
+  DashboardNicheFoodRoute: DashboardNicheFoodRouteWithChildren,
+  DashboardNicheHospitalRoute: DashboardNicheHospitalRoute,
+}
+
+const DashboardNicheRouteWithChildren = DashboardNicheRoute._addFileChildren(
+  DashboardNicheRouteChildren,
+)
+
+interface DashboardRouteChildren {
+  DashboardNicheRoute: typeof DashboardNicheRouteWithChildren
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardNicheRoute: DashboardNicheRouteWithChildren,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
   SettingsRoute: SettingsRoute,
@@ -251,12 +386,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
