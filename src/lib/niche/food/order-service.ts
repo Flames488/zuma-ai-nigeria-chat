@@ -30,7 +30,7 @@ export async function createFoodOrder(args: {
         delivery_address: args.deliveryAddress,
         notes: args.notes ?? null,
         status: "pending",
-      })
+      }])
       .select("*")
       .single();
     if (error || !data) {
