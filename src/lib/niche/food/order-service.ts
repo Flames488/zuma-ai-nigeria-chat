@@ -19,7 +19,7 @@ export async function createFoodOrder(args: {
   try {
     const { data, error } = await supabaseAdmin
       .from("food_orders")
-      .insert({
+      .insert([{
         business_id: args.businessId,
         customer_number: args.customerNumber,
         customer_name: args.customerName,
