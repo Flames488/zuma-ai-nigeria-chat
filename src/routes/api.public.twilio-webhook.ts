@@ -316,11 +316,54 @@ async function handleIncomingMessage(args: {
     .order("created_at", { ascending: true })
     .limit(30);
 
-  // 4. Call Lovable AI
+  const typedHistory = (history ?? []).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  // 3.5 — NICHE ROUTING (post-intent, pre-generic-AI)
+  // If a niche module owns this turn, persist the reply and return immediately.
+  const niches = await loadActiveNiches(args.business.id);
+  if (niches.length > 0) {
+    const nicheResult = await routeToNiche(niches, {
+      businessId: args.business.id,
+      businessName: args.business.name,
+      customerNumber: args.customerNumber,
+      customerName: args.customerName,
+      text: args.text,
+      history: typedHistory,
+    });
+    if (nicheResult.handled) {
+      const reply = nicheResult.reply ?? "";
+      if (reply) {
+        await supabaseAdmin.from("messages").insert({
+          conversation_id: conversationId,
+          role: "assistant",
+          content: reply,
+        });
+      }
+      return reply;
+    }
+  }
+
+  // 4. Call Lovable AI (generic fallback) — niche prompt additions get injected.
   const lovableKey = process.env.LOVABLE_API_KEY;
   let reply = "Thanks for your message! We'll get back to you shortly.";
   if (lovableKey) {
     try {
+      const promptAdditions: string[] = [];
+      for (const n of niches) {
+        if (n.niche_type === "hospital") {
+          promptAdditions.push(hospitalPromptAddition(n.config as any));
+        } else if (n.niche_type === "food") {
+          const menu = await listMenu(args.business.id, { availableOnly: true });
+          promptAdditions.push(foodPromptAddition(n.config as any, menu));
+        }
+      }
+      const systemPrompt = [buildSystemPrompt(args.business), ...promptAdditions]
+        .filter(Boolean)
+        .join("\n\n");
+
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -330,8 +373,8 @@ async function handleIncomingMessage(args: {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: buildSystemPrompt(args.business) },
-            ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
+            { role: "system", content: systemPrompt },
+            ...typedHistory,
           ],
         }),
       });
