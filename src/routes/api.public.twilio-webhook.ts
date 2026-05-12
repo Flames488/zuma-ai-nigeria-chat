@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { loadActiveNiches } from "@/lib/niche/niche-loader";
+import { routeToNiche } from "@/lib/niche/niche-router";
+import { hospitalPromptAddition } from "@/lib/niche/hospital/prompt-additions";
+import { foodPromptAddition } from "@/lib/niche/food/prompt-additions";
+import { listMenu } from "@/lib/niche/food/menu-service";
 
 /**
  * Twilio WhatsApp inbound webhook.
