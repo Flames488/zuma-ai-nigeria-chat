@@ -100,6 +100,112 @@ export type Database = {
           },
         ]
       }
+      food_orders: {
+        Row: {
+          business_id: string
+          created_at: string
+          customer_name: string | null
+          customer_number: string
+          delivery_address: string | null
+          delivery_fee_kobo: number
+          id: string
+          items: Json
+          notes: string | null
+          paystack_reference: string | null
+          status: string
+          subtotal_kobo: number
+          total_kobo: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number: string
+          delivery_address?: string | null
+          delivery_fee_kobo?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          paystack_reference?: string | null
+          status?: string
+          subtotal_kobo?: number
+          total_kobo?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number?: string
+          delivery_address?: string | null
+          delivery_fee_kobo?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          paystack_reference?: string | null
+          status?: string
+          subtotal_kobo?: number
+          total_kobo?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          available: boolean
+          business_id: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          price_kobo: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          business_id: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          price_kobo: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          business_id?: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          price_kobo?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -128,6 +234,44 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      niche_configs: {
+        Row: {
+          active: boolean
+          business_id: string
+          config: Json
+          created_at: string
+          id: string
+          niche_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          business_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          niche_type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          business_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          niche_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "niche_configs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
