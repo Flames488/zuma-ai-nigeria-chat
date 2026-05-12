@@ -34,7 +34,7 @@ function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    try { setOrders((await callList({})) as Order[]); }
+    try { setOrders((await callList({})) as unknown as Order[]); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Load failed"); }
     finally { setLoading(false); }
   }, [callList]);
