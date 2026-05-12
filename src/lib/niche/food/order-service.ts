@@ -23,7 +23,7 @@ export async function createFoodOrder(args: {
         business_id: args.businessId,
         customer_number: args.customerNumber,
         customer_name: args.customerName,
-        items: args.items as unknown as object,
+        items: args.items as unknown as never,
         subtotal_kobo: subtotal,
         delivery_fee_kobo: args.deliveryFeeKobo,
         total_kobo: total,
